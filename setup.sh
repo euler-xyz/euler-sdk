@@ -1,17 +1,17 @@
-#git clone https://github.com/euler-xyz/euler-contracts
+git clone https://github.com/euler-xyz/euler-contracts
 
-#cd euler-contracts
-#npm i
+cd euler-contracts
+npm i
 
-#npx hardhat compile
+npx hardhat compile
 
-#cd ..
+cd ..
 
-#mv ./euler-contracts/addresses ./
+mv ./euler-contracts/addresses ./
 
-#mv ./euler-contracts/artifacts/contracts ./
+mv ./euler-contracts/artifacts/contracts ./
 
-#rm -rf euler-contracts
+rm -rf euler-contracts
 
 git pull
 git add .
