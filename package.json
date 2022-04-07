@@ -1,5 +1,5 @@
 {
-  "name": "euler-abi",
+  "name": "euler-sdk",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,18 +8,20 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/euler-xyz/euler-abi.git"
+    "url": "git+https://github.com/euler-xyz/euler-sdk.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/euler-xyz/euler-abi/issues"
+    "url": "https://github.com/euler-xyz/euler-sdk/issues"
   },
-  "homepage": "https://github.com/euler-xyz/euler-abi#readme",
+  "homepage": "https://github.com/euler-xyz/euler-sdk#readme",
   "dependencies": {
-    "@eulerxyz/euler-interfaces": "^1.0.2",
-    "ethers": "^5.6.2",
-    "euler-contracts": "github:euler-xyz/euler-contracts"
+    "@eulerxyz/euler-interfaces": "^1.0.4",
+    "ethers": "^5.6.2"
+  },
+  "peerDependencies": {
+    "euler-interfaces-ropsten": "npm:@eulerxyz/euler-interfaces@^1.0.4-ropsten.0"
   },
   "devDependencies": {
     "dotenv": "^16.0.0"

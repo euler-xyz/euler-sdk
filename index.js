@@ -1,57 +1,42 @@
 const ethers = require("ethers");
 const ERC20Abi = require("./ERC20Abi.json");
 
-const EulerAbi = require("@eulerxyz/euler-interfaces/abis/Euler.json").abi;
-const PTokenAbi = require("@eulerxyz/euler-interfaces/abis/PToken.json").abi;
-const ETokenAbi =
-  require("@eulerxyz/euler-interfaces/abis/modules/EToken.json").abi;
-const DTokenAbi =
-  require("@eulerxyz/euler-interfaces/abis/modules/DToken.json").abi;
-const ExecAbi =
-  require("@eulerxyz/euler-interfaces/abis/modules/Exec.json").abi;
-const Liquidation =
-  require("@eulerxyz/euler-interfaces/abis/modules/Liquidation.json").abi;
-const MarketsAbi =
-  require("@eulerxyz/euler-interfaces/abis/modules/Markets.json").abi;
-const SwapAbi =
-  require("@eulerxyz/euler-interfaces/abis/modules/Swap.json").abi;
-const EulDistributorAbi =
-  require("@eulerxyz/euler-interfaces/abis/mining/EulDistributor.json").abi;
-const EulStakesAbi =
-  require("@eulerxyz/euler-interfaces/abis/mining/EulStakes.json").abi;
+const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
 
-// TODO move addresses to euler-interfaces
-const chainConfig = {
-  1: {
-    addresses: require("euler-contracts/addresses/euler-addresses-mainnet.json"),
-    referenceAsset: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-  },
-  3: {
-    addresses: require("euler-contracts/addresses/euler-addresses-ropsten.json"),
-    referenceAsset: "0xc778417e063141139fce010982780140aa0cd5ab",
-  },
-};
+const MULTI_PROXY_MODULES = ["modules/EToken", "modules/DToken", "PToken"];
+const SINGLE_PROXY_MODULES = [
+  "Euler",
+  "modules/Exec",
+  "modules/Liquidation",
+  "modules/Markets",
+  "modules/Swap",
+  "views/EulerGeneralView",
+];
 
-const MULTI_PROXY_MODULES = ["eToken", "dToken"];
+const toLower = (str) => str.charAt(0).toLowerCase() + str.substring(1);
 
 class Euler {
   constructor(signerOrProvider, chainId = 1) {
+    this.chainId = chainId;
     this.contracts = {};
-    this._tokenCache = {};
-    this.addresses = chainConfig[chainId].addresses;
-    this.referenceAsset = chainConfig[chainId].referenceAsset;
+    this.abis = {};
+    this.addresses = {};
+
+    this._loadInterfaces();
 
     this.connect(signerOrProvider);
 
-    this.addContract("Euler", EulerAbi);
-    this.addContract("Exec", ExecAbi);
-    this.addContract("Liquidation", Liquidation);
-    this.addContract("Markets", MarketsAbi);
-    this.addContract("Swap", SwapAbi);
+    this.addSingleton("Euler");
+    this.addSingleton("Exec");
+    this.addSingleton("Liquidation");
+    this.addSingleton("Markets");
+    this.addSingleton("Swap");
 
-    // TODO handle addresses
-    // this.addContract("EulDistributor", EulDistributorAbi);
-    // this.addContract("EulStakes", EulStakesAbi);
+    this._tokenCache = {};
+
+    // this.addSingleton("EulDistributor");
+    // this.addSingleton("EulStakes");
   }
 
   connect(signerOrProvider) {
@@ -63,14 +48,17 @@ class Euler {
     return this;
   }
 
-  addContract(name, abi, address) {
-    const lowerCaseName = name.charAt(0).toLowerCase() + name.substring(1);
+  addSingleton(name, abi, address) {
+    const lowerCaseName = toLower(name);
 
-    const addr = address || this.addresses[lowerCaseName];
-    if (!addr) throw new Error(`addContract: Unknown address for ${name}`);
+    abi = abi || this.abis[lowerCaseName];
+    if (!abi) throw new Error(`addSingleton: Unknown abi for ${name}`);
+
+    address = address || this.addresses[lowerCaseName];
+    if (!address) throw new Error(`addSingleton: Unknown address for ${name}`);
 
     this.contracts[lowerCaseName] = new ethers.Contract(
-      addr,
+      address,
       abi,
       this.signerOrProvider
     );
@@ -81,15 +69,15 @@ class Euler {
   }
 
   eToken(address) {
-    return this._addToken(address, ETokenAbi);
+    return this._addToken(address, this.abis.eToken);
   }
 
   dToken(address) {
-    return this._addToken(address, DTokenAbi);
+    return this._addToken(address, this.abis.dToken);
   }
 
   pToken(address) {
-    return this._addToken(address, PTokenAbi);
+    return this._addToken(address, this.abis.pToken);
   }
 
   buildBatch(items) {
@@ -128,7 +116,6 @@ class Euler {
       let feeMul = parseFloat(process.env.TX_FEE_MUL);
 
       let feeData = await this.signerOrProvider.getFeeData();
-      console.log('feeData: ', feeData);
 
       opts.maxFeePerGas = ethers.BigNumber.from(
         Math.floor(feeData.maxFeePerGas.toNumber() * feeMul)
@@ -170,6 +157,27 @@ class Euler {
     }
 
     throw new Error(`_batchItemToContract: Unknown contract ${item.contract}`);
+  }
+
+  _loadInterfaces() {
+    let importPath;
+
+    if (this.chainId === 1) {
+      importPath = "@eulerxyz/euler-interfaces/abis";
+      this.addresses = require("@eulerxyz/euler-interfaces/addresses/addresses-mainnet.json");
+      this.referenceAsset = WETH_MAINNET;
+    } else if (this.chainId === 3) {
+      importPath = "euler-interfaces-ropsten/abis";
+      this.addresses = require("euler-interfaces-ropsten/addresses/addresses-ropsten.json");
+      this.referenceAsset = WETH_ROPSTEN;
+    } else {
+      return;
+    }
+
+    [...MULTI_PROXY_MODULES, ...SINGLE_PROXY_MODULES].forEach((module) => {
+      const name = toLower(module.split("/").pop());
+      this.abis[name] = require(`${importPath}/${module}`).abi;
+    });
   }
 }
 
