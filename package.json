@@ -15,5 +15,13 @@
   "bugs": {
     "url": "https://github.com/euler-xyz/euler-abi/issues"
   },
-  "homepage": "https://github.com/euler-xyz/euler-abi#readme"
+  "homepage": "https://github.com/euler-xyz/euler-abi#readme",
+  "dependencies": {
+    "@eulerxyz/euler-interfaces": "^1.0.2",
+    "ethers": "^5.6.2",
+    "euler-contracts": "github:euler-xyz/euler-contracts"
+  },
+  "devDependencies": {
+    "dotenv": "^16.0.0"
+  }
 }
