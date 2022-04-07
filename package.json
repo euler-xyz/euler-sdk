@@ -1,6 +1,6 @@
 {
-  "name": "euler-sdk",
-  "version": "0.0.1-beta.0",
+  "name": "@eulerxyz/euler-sdk",
+  "version": "0.0.2-beta.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,9 +19,6 @@
   "dependencies": {
     "@eulerxyz/euler-interfaces": "^1.0.4",
     "ethers": "^5.6.2"
-  },
-  "peerDependencies": {
-    "euler-interfaces-ropsten": "npm:@eulerxyz/euler-interfaces@^1.0.4-ropsten.0"
   },
   "devDependencies": {
     "dotenv": "^16.0.0"
