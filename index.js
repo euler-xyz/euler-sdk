@@ -17,13 +17,14 @@ const SINGLE_PROXY_MODULES = [
 const toLower = (str) => str.charAt(0).toLowerCase() + str.substring(1);
 
 class Euler {
-  constructor(signerOrProvider, chainId = 1) {
+  constructor(signerOrProvider, chainId = 1, networkConfig) {
     this.chainId = chainId;
     this.contracts = {};
     this.abis = {};
     this.addresses = {};
+    this._tokenCache = {};
 
-    this._loadInterfaces();
+    this._loadInterfaces(networkConfig);
 
     this.connect(signerOrProvider);
 
@@ -33,19 +34,33 @@ class Euler {
     this.addSingleton("Markets");
     this.addSingleton("Swap");
 
-    this._tokenCache = {};
-
+    if (this.addresses.eul) {
+      this.contracts.eul = this.erc20(this.addresses.eul.address);
+    }
+    
     // this.addSingleton("EulDistributor");
     // this.addSingleton("EulStakes");
   }
 
   connect(signerOrProvider) {
-    this.signerOrProvider = signerOrProvider;
-    Object.values(this.contracts).forEach((c) => {
-      c.connect(this.signerOrProvider);
+    this._signerOrProvider = signerOrProvider;
+    Object.entries(this.contracts).forEach(([key, c]) => {
+      this.contracts[key] = c.connect(this._signerOrProvider);
     });
 
     return this;
+  }
+
+  getSigner() {
+    return ethers.Signer.isSigner(this._signerOrProvider)
+      ? this._signerOrProvider
+      : null;
+  }
+
+  getProvider() {
+    return ethers.Signer.isSigner(this._signerOrProvider)
+      ? this._signerOrProvider.provider
+      : this._signerOrProvider;
   }
 
   addSingleton(name, abi, address) {
@@ -60,7 +75,7 @@ class Euler {
     this.contracts[lowerCaseName] = new ethers.Contract(
       address,
       abi,
-      this.signerOrProvider
+      this._signerOrProvider
     );
   }
 
@@ -115,7 +130,7 @@ class Euler {
     if (process.env.TX_FEE_MUL !== undefined) {
       let feeMul = parseFloat(process.env.TX_FEE_MUL);
 
-      let feeData = await this.signerOrProvider.getFeeData();
+      let feeData = await this.getProvider().getFeeData();
 
       opts.maxFeePerGas = ethers.BigNumber.from(
         Math.floor(feeData.maxFeePerGas.toNumber() * feeMul)
@@ -141,11 +156,11 @@ class Euler {
       this._tokenCache[address] = new ethers.Contract(
         address,
         abi,
-        this.signerOrProvider
+        this._signerOrProvider
       );
     }
 
-    return this._tokenCache[address].connect(this.signerOrProvider);
+    return this._tokenCache[address].connect(this._signerOrProvider);
   }
 
   _batchItemToContract(item) {
@@ -159,24 +174,31 @@ class Euler {
     throw new Error(`_batchItemToContract: Unknown contract ${item.contract}`);
   }
 
-  _loadInterfaces() {
-    let importPath;
+  _loadInterfaces(networkConfig = {}) {
+    let abiPath = "@eulerxyz/euler-interfaces/abis";
 
     if (this.chainId === 1) {
-      importPath = "@eulerxyz/euler-interfaces/abis";
       this.addresses = require("@eulerxyz/euler-interfaces/addresses/addresses-mainnet.json");
       this.referenceAsset = WETH_MAINNET;
     } else if (this.chainId === 3) {
-      importPath = "euler-interfaces-ropsten/abis";
-      this.addresses = require("euler-interfaces-ropsten/addresses/addresses-ropsten.json");
       this.referenceAsset = WETH_ROPSTEN;
+      try {
+        // special case ropsten for development
+        this.addresses = require("euler-interfaces-ropsten/addresses/addresses-ropsten.json");
+        abiPath = "euler-interfaces-ropsten/abis";
+      } catch {
+        this.addresses = require("@eulerxyz/euler-interfaces/addresses/addresses-ropsten.json");
+      }
     } else {
-      return;
+      if (!networkConfig.addresses) throw new Error(`Missing addresses for chainId ${this.chainId}`);
+      if (!networkConfig.referenceAsset) throw new Error(`Missing reference asset for chainId ${this.chainId}`);
+      this.addresses = networkConfig.addresses;
+      this.referenceAsset = networkConfig.referenceAsset;
     }
 
     [...MULTI_PROXY_MODULES, ...SINGLE_PROXY_MODULES].forEach((module) => {
       const name = toLower(module.split("/").pop());
-      this.abis[name] = require(`${importPath}/${module}`).abi;
+      this.abis[name] = require(`${abiPath}/${module}`).abi;
     });
   }
 }

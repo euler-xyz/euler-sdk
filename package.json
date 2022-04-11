@@ -1,6 +1,6 @@
 {
   "name": "@eulerxyz/euler-sdk",
-  "version": "0.0.2-beta.0",
+  "version": "0.0.2-beta.4",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -17,8 +17,8 @@
   },
   "homepage": "https://github.com/euler-xyz/euler-sdk#readme",
   "dependencies": {
-    "@eulerxyz/euler-interfaces": "^1.0.4",
-    "ethers": "^5.6.2"
+    "@eulerxyz/euler-interfaces": "^1.0.5",
+    "ethers": "^5.5.3"
   },
   "devDependencies": {
     "dotenv": "^16.0.0"
