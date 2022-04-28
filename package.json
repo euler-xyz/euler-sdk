@@ -1,9 +1,20 @@
 {
   "name": "@eulerxyz/euler-sdk",
-  "version": "0.0.2-beta.11",
-  "description": "",
-  "main": "index.js",
+  "version": "0.0.2-beta.17",
+  "description": "Developer SDK for building on Euler platform",
+  "source": "src/index.js",
+  "exports": {
+    "require": "./dist/index.js",
+    "default": "./dist/index.modern.js"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.module.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "microbundle",
+    "dev": "microbundle watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -21,6 +32,7 @@
     "ethers": "^5.5.3"
   },
   "devDependencies": {
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "microbundle": "^0.15.0"
   }
 }

@@ -1,4 +1,4 @@
-const ethers = require("ethers");
+import { ethers } from "ethers";
 
 const ABI_EIP2612 = [
   "function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s)",
@@ -63,7 +63,7 @@ const TYPES_PERMIT_ALLOWED = {
   ],
 };
 
-const signPermit = async (
+export const signPermit = async (
   tokenAddress,
   { type, variant, domain },
   { spender, value, allowed, deadline },
@@ -135,4 +135,3 @@ const signPermit = async (
   throw new Error(`Unknown permit type: ${type}`);
 };
 
-module.exports = { signPermit };
