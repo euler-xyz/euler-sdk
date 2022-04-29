@@ -4,8 +4,7 @@ import { signPermit } from "./permits";
 
 import addressesMainnet from "@eulerxyz/euler-interfaces/addresses/addresses-mainnet.json";
 import addressesRopsten from "@eulerxyz/euler-interfaces/addresses/addresses-ropsten.json";
-import * as eulerAbis from "./eulerAbis";
-console.log('eulerAbis: ', eulerAbis);
+import eulerAbis from "./eulerAbis";
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";

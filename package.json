@@ -1,14 +1,10 @@
 {
   "name": "@eulerxyz/euler-sdk",
-  "version": "0.0.2-beta.17",
+  "version": "0.0.2-beta.21",
   "description": "Developer SDK for building on Euler platform",
   "source": "src/index.js",
-  "exports": {
-    "require": "./dist/index.js",
-    "default": "./dist/index.modern.js"
-  },
   "main": "./dist/index.js",
-  "module": "./dist/index.module.js",
+  "module": "./dist/index.module.mjs",
   "files": [
     "dist"
   ],
