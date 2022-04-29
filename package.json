@@ -1,17 +1,17 @@
 {
   "name": "@eulerxyz/euler-sdk",
-  "version": "0.0.2-beta.21",
+  "version": "0.0.2-beta.26",
   "description": "Developer SDK for building on Euler platform",
   "source": "src/index.js",
   "main": "./dist/index.js",
-  "module": "./dist/index.module.mjs",
+  "module": "./dist/index.esm.js",
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "microbundle",
     "dev": "microbundle watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepublishOnly": "microbundle"
   },
   "repository": {
     "type": "git",
@@ -25,10 +25,10 @@
   "homepage": "https://github.com/euler-xyz/euler-sdk#readme",
   "dependencies": {
     "@eulerxyz/euler-interfaces": "^1.0.10",
-    "ethers": "^5.5.3"
+    "ethers": "^5.5.3",
+    "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
-    "dotenv": "^16.0.0",
     "microbundle": "^0.15.0"
   }
 }
