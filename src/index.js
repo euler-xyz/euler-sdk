@@ -13,7 +13,7 @@ import eulerAbis from "./eulerAbis";
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
-const MULTI_PROXY_MODULES = ["EToken", "DToken", "PToken"];
+const MULTI_PROXY_MODULES = ["eToken", "dToken", "pToken"];
 const DEFAULT_PERMIT_DEADLINE = Math.floor(
   (Date.now() + 60 * 60 * 1000) / 1000
 );
