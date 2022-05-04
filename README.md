@@ -14,13 +14,13 @@ The package provides a single named export - the Euler class
 import { Euler } from "@eulerxyz/euler-sdk"
 ```
 
-The constructor takes a single required arguement - signerOrProvider, similar to ethers. The second argument is the chainId. Currently the SDK contains built in configurations for mainnet (chainId === 1), which is also default, and ropsten (chainId === 3) deployments.
+The constructor takes a single required arguement - `signerOrProvider`, similar to ethers. The second argument is the `chainId`. Currently the SDK contains built in configurations for mainnet (chainId = 1), which is also default, and ropsten (chainId = 3) deployments.
 
 ```js
-    const provider = new ethers.providers.JsonRpcProvider("<JSON_RPC_URL>")
-    const signer = new ethers.Wallet("<PRV_KEY>", provider)
+const provider = new ethers.providers.JsonRpcProvider("<JSON_RPC_URL>")
+const signer = new ethers.Wallet("<PRV_KEY>", provider)
 
-    const e = new Euler(signer);
+const e = new Euler(signer);
 ```
 
 ## Interacting with the smart contracts
@@ -29,11 +29,11 @@ The constructor takes a single required arguement - signerOrProvider, similar to
 By default, the SDK provides instances of the [ethers.Contract](https://docs.ethers.io/v5/api/contract/contract/) of the main Euler modules: Euler, Exec, Liquidation, Markets and Swap.
 
 ```js
-  // activate a new market
-  await e.contracts.markets.activateMarket(tokenAddress)
+// activate a new market
+await e.contracts.markets.activateMarket(tokenAddress)
 
-  // check to see if liquidation would be profitable
-  const liquidationOpportunity = await e.contracts.liquidation.callStatic.checkLiquidation(liquidator, violator, underlying, collateral)
+// check to see if liquidation would be profitable
+const liquidationOpportunity = await e.contracts.liquidation.callStatic.checkLiquidation(liquidator, violator, underlying, collateral)
 ```
 
 ### Peripheries
@@ -113,15 +113,15 @@ Note that for singleton contracts, the `address` can be omitted. The `contract` 
 ]
 ```
 
-The encoded payload can be used to execute the `batchDispatch` transaction. If `batchDispatch` is static called, the SDK `decodeBatch` can be used to decode return values from each function called
+The encoded payload can be used to execute the `batchDispatch` transaction. If `batchDispatch` is static called, the SDK `decodeBatch` can be used to decode return values from each function called.
 ```js
 const rawResults = await e.contracts.exec.callStatic.batchDispatch(e.buildBatch(batchItems), [])
-const [ result1, result2 ] = e.decodeBatch(rawResults)
+const [ result1, result2 ] = e.decodeBatch(batchItems, rawResults)
 ```
 
 ### Signing and using permits
 
-To use EIP2612 permits on Euler, SDK provides `signPermit` and `signPermitBatchItem` functions. They both expect a token object with permit extension in [euler-tokenlist](https://github.com/euler-xyz/euler-tokenlist) format. `signPermit` is a low level function, where `signPermitBatchItem` should be used when creating calls to `batchDispatch`.
+To use EIP2612 permits on Euler, SDK provides `signPermit` and `signPermitBatchItem` functions. They both expect a token object with permit extension in [euler-tokenlist](https://github.com/euler-xyz/euler-tokenlist) format. `signPermit` is a low level function, while `signPermitBatchItem` should be used when creating calls to `batchDispatch`.
 
 ```js
 const batch = [
