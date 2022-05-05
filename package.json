@@ -1,19 +1,34 @@
 {
-  "name": "euler-abi",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "@eulerxyz/euler-sdk",
+  "version": "0.1.0",
+  "description": "Developer SDK for building on Euler platform",
+  "source": "src/index.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.esm.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "microbundle",
+    "dev": "microbundle watch",
+    "prepublishOnly": "microbundle"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/euler-xyz/euler-abi.git"
+    "url": "git+https://github.com/euler-xyz/euler-sdk.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/euler-xyz/euler-abi/issues"
+    "url": "https://github.com/euler-xyz/euler-sdk/issues"
   },
-  "homepage": "https://github.com/euler-xyz/euler-abi#readme"
+  "homepage": "https://github.com/euler-xyz/euler-sdk#readme",
+  "dependencies": {
+    "@eulerxyz/euler-interfaces": "^1.0.10",
+    "ethers": "^5.5.3",
+    "tiny-invariant": "^1.2.0"
+  },
+  "devDependencies": {
+    "microbundle": "^0.15.0"
+  }
 }
