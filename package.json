@@ -1,6 +1,6 @@
 {
   "name": "@eulerxyz/euler-sdk",
-  "version": "0.0.2-beta.26",
+  "version": "0.1.0",
   "description": "Developer SDK for building on Euler platform",
   "source": "src/index.js",
   "main": "./dist/index.js",
