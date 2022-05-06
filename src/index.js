@@ -19,7 +19,7 @@ const DEFAULT_PERMIT_DEADLINE = Math.floor(
 );
 
 class Euler {
-  constructor(signerOrProvider, chainId = 1, networkConfig) {
+  constructor(signerOrProvider, chainId = 1, networkConfig = null) {
     this.chainId = chainId;
     this.contracts = {};
     this.abis = {};
@@ -77,7 +77,7 @@ class Euler {
     return null;
   }
 
-  addContract(name, abi, address) {
+  addContract(name, abi = null, address = null) {
     invariant(name, "Contract name is required");
 
     name = uncapitalize(name);
