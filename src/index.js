@@ -2,10 +2,7 @@ import { ethers } from "ethers";
 import invariant from "tiny-invariant";
 import ERC20Abi from "./ERC20Abi";
 import { signPermit } from "./permits";
-import {
-  uncapitalize,
-  validateAddress,
-} from "./utils";
+import { uncapitalize, validateAddress } from "./utils";
 
 import addressesMainnet from "@eulerxyz/euler-interfaces/addresses/addresses-mainnet.json";
 import addressesRopsten from "@eulerxyz/euler-interfaces/addresses/addresses-ropsten.json";
@@ -14,9 +11,13 @@ import eulerAbis from "./eulerAbis";
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
 const MULTI_PROXY_MODULES = ["eToken", "dToken", "pToken"];
-const DEFAULT_PERMIT_DEADLINE = Math.floor(
-  (Date.now() + 60 * 60 * 1000) / 1000
-);
+const LIQUIDITY_CHECK_ERRORS = [
+  "e/collateral-violation",
+  "e/borrow-isolation-violation",
+];
+
+const DEFAULT_PERMIT_DEADLINE = () =>
+  Math.floor((Date.now() + 60 * 60 * 1000) / 1000);
 
 class Euler {
   constructor(signerOrProvider, chainId = 1, networkConfig = null) {
@@ -117,8 +118,24 @@ class Euler {
     return this._getToken(address, this.abis.pToken);
   }
 
-  buildBatch(items) {
-    return items.map((item) => {
+  buildBatch(items = []) {
+    return items.map((i) => {
+      let item = { ...i };
+      if (item.staticCall) {
+        const scContract = this._batchItemToContract(item.staticCall);
+        const scPayload = scContract.interface.encodeFunctionData(
+          item.staticCall.method,
+          item.staticCall.args
+        );
+
+        item = {
+          allowError: item.allowError,
+          contract: "exec",
+          method: "doStaticCall",
+          args: [scContract.address, scPayload],
+        };
+      }
+
       const contract = this._batchItemToContract(item);
 
       return {
@@ -129,28 +146,54 @@ class Euler {
     });
   }
 
-  decodeBatch(items, resp) {
+  async simulateBatch(deferredLiquidity, items = [], estimateGasItems = null) {
+    invariant(Array.isArray(items), "Expecting an array of batch items");
+
     invariant(
-      Array.isArray(items) && Array.isArray(resp),
-      "Batch items and responses are required"
-    );
-    invariant(
-      items.length === resp.length,
-      "Number of responses doesn't match batch items"
+      !estimateGasItems || Array.isArray(estimateGasItems),
+      "Expecting an array of batch items for gas estimations"
     );
 
-    const o = [];
+    const simulate = async () => {
+      try {
+        await sdk.contracts.exec.callStatic.batchDispatchSimulate(
+          sdk.buildBatch(items),
+          deferredLiquidity
+        );
+      } catch (e) {
+        if (e.errorName !== "BatchDispatchSimulation") throw e;
+        return sdk._decodeBatch(items, e.errorArgs.simulation);
+      }
+    };
 
-    for (let i = 0; i < resp.length; i++) {
-      o.push(
-        this._batchItemToContract(items[i]).interface.decodeFunctionResult(
-          items[i].method,
-          resp[i].result
-        )
-      );
-    }
+    const estimateGas = async () => {
+      try {
+        const gas = await sdk.contracts.exec.estimateGas.batchDispatch(
+          sdk.buildBatch(estimateGasItems || items),
+          deferredLiquidity
+        );
+        return { gas };
+      } catch (e) {
+        if (e.reason) {
+          for (const liquidityCheckError of LIQUIDITY_CHECK_ERRORS) {
+            if (e.reason.includes(liquidityCheckError))
+              return { liquidityCheckError };
+          }
+        }
+        throw e;
+      }
+    };
 
-    return o;
+    const [simulation, { gas, liquidityCheckError }] = await Promise.all([
+      simulate(),
+      estimateGas(),
+    ]);
+
+    return {
+      simulation,
+      gas,
+      liquidityCheckError,
+    };
   }
 
   signPermit(
@@ -159,7 +202,7 @@ class Euler {
       spender = this.contracts.euler.address,
       value = ethers.constants.MaxUint256,
       allowed = true,
-      deadline = DEFAULT_PERMIT_DEADLINE,
+      deadline = DEFAULT_PERMIT_DEADLINE(),
     },
     signer = this.getSigner()
   ) {
@@ -181,17 +224,16 @@ class Euler {
   async signPermitBatchItem(
     token,
     {
-      spender = this.contracts.euler.address,
       value = ethers.constants.MaxUint256,
       allowed = true,
-      deadline = DEFAULT_PERMIT_DEADLINE,
+      deadline = DEFAULT_PERMIT_DEADLINE(),
     },
     allowError = false,
-    signer = this.getSigner(),
+    signer = this.getSigner()
   ) {
     const { nonce, signature } = await this.signPermit(
       token,
-      { spender, value, allowed, deadline },
+      { spender: this.contracts.euler.address, value, allowed, deadline },
       signer
     );
 
@@ -263,6 +305,22 @@ class Euler {
     throw new Error(`Unknown contract ${item.contract}`);
   }
 
+  _decodeBatch(items, resp) {
+    const decoded = [];
+
+    for (let i = 0; i < resp.length; i++) {
+      const item = items[i].staticCall || items[i];
+      decoded.push(
+        this._batchItemToContract(item).interface.decodeFunctionResult(
+          item.method,
+          resp[i].result
+        )
+      );
+    }
+
+    return decoded;
+  }
+
   _loadInterfaces(networkConfig = {}) {
     if (this.chainId === 1) {
       this.addresses = addressesMainnet;
@@ -271,8 +329,14 @@ class Euler {
       this.addresses = addressesRopsten;
       this.referenceAsset = WETH_ROPSTEN;
     } else {
-      invariant(networkConfig.addresses, `Missing addresses for chainId ${this.chainId}`)
-      invariant(networkConfig.referenceAsset, `Missing reference asset for chainId ${this.chainId}`)
+      invariant(
+        networkConfig.addresses,
+        `Missing addresses for chainId ${this.chainId}`
+      );
+      invariant(
+        networkConfig.referenceAsset,
+        `Missing reference asset for chainId ${this.chainId}`
+      );
 
       this.addresses = networkConfig.addresses;
       this.referenceAsset = networkConfig.referenceAsset;

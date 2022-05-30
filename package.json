@@ -1,6 +1,6 @@
 {
   "name": "@eulerxyz/euler-sdk",
-  "version": "0.1.1",
+  "version": "0.2.0-beta.0",
   "description": "Developer SDK for building on Euler platform",
   "source": "src/index.js",
   "main": "./dist/index.js",
@@ -27,7 +27,7 @@
   "homepage": "https://github.com/euler-xyz/euler-sdk#readme",
   "dependencies": {
     "@eulerxyz/euler-interfaces": "^1.0.10",
-    "ethers": "^5.5.3",
+    "ethers": "^5.6.8",
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
