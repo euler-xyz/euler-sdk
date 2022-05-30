@@ -156,20 +156,20 @@ class Euler {
 
     const simulate = async () => {
       try {
-        await sdk.contracts.exec.callStatic.batchDispatchSimulate(
-          sdk.buildBatch(items),
+        await this.contracts.exec.callStatic.batchDispatchSimulate(
+          this.buildBatch(items),
           deferredLiquidity
         );
       } catch (e) {
         if (e.errorName !== "BatchDispatchSimulation") throw e;
-        return sdk._decodeBatch(items, e.errorArgs.simulation);
+        return this._decodeBatch(items, e.errorArgs.simulation);
       }
     };
 
     const estimateGas = async () => {
       try {
-        const gas = await sdk.contracts.exec.estimateGas.batchDispatch(
-          sdk.buildBatch(estimateGasItems || items),
+        const gas = await this.contracts.exec.estimateGas.batchDispatch(
+          this.buildBatch(estimateGasItems || items),
           deferredLiquidity
         );
         return { gas };
