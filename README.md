@@ -26,19 +26,24 @@ const e = new Euler(signer);
 ## Interacting with the smart contracts
 
 ### Main modules
-By default, the SDK provides instances of the [ethers.Contract](https://docs.ethers.io/v5/api/contract/contract/) of the main Euler modules: Euler, Exec, Liquidation, Markets and Swap.
+By default, the SDK provides instances of the [ethers.Contract](https://docs.ethers.io/v5/api/contract/contract/) of the main Euler modules: `Euler`, `Exec`, `Liquidation`, `Markets` and `Swap`.
 
 ```js
 // activate a new market
 await e.contracts.markets.activateMarket(tokenAddress)
 
 // check to see if liquidation would be profitable
-const liquidationOpportunity = await e.contracts.liquidation.callStatic.checkLiquidation(liquidator, violator, underlying, collateral)
+const liquidationOpportunity = await e.contracts.liquidation.callStatic.checkLiquidation(
+  liquidator,
+  violator,
+  underlying,
+  collateral
+)
 ```
 
 ### Peripheries
 
-In addition to the main modules, the SDK contains configuration for the mining contracts EulStakes and EulDistributor as well as peripheries FlashLoan and EulerGeneralView. They need to be explicitly initiated:
+In addition to the main modules, the SDK contains configuration for the mining contracts `EulStakes` and `EulDistributor` as well as peripheries `FlashLoan` and `EulerGeneralView`. They need to be explicitly initiated:
 
 ```js
 e.addContract("EulStakes")
@@ -47,7 +52,7 @@ e.addContract("FlashLoan")
 
 ### Eul token
 
-Euler's native governance token Eul is also available:
+Euler's native governance token `Eul` is also available:
 
 ```js
 const balance = await e.contracts.eul.balanceOf(myAccount)
@@ -84,7 +89,7 @@ await e.contracts.weth.deposit({ value: ONE_ETH })
 
 ### Batch transactions
 
-Euler platform supports batching user operations into a single gas efficient transaction. SDK provides helper methods `buildBatch` and `decodeBatch` to make use of this feature.
+Euler platform supports batching user operations into a single gas efficient transaction. SDK provides a helper method `buildBatch` to make use of this feature.
 `buildBatch` creates encoded payload to the Exec contract's `batchDispatch`. All public functions of Euler modules are available. The function expects an array of operations:
 ```js
 const batchItems = [
@@ -113,10 +118,72 @@ Note that for singleton contracts, the `address` can be omitted. The `contract` 
 ]
 ```
 
-The encoded payload can be used to execute the `batchDispatch` transaction. If `batchDispatch` is static called, the SDK `decodeBatch` can be used to decode return values from each function called.
+The encoded payload can be used to execute the `batchDispatch` transaction.
 ```js
-const rawResults = await e.contracts.exec.callStatic.batchDispatch(e.buildBatch(batchItems), [])
-const [ result1, result2 ] = e.decodeBatch(batchItems, rawResults)
+await e.contracts.exec.callStatic.batchDispatch(e.buildBatch(batchItems), [])
+```
+
+#### Batch simulations
+In Euler it is possible to simulate batch calls in a flexible and powerful way. Internally, the Exec contract exposes a function `batchDispatchSimulate`, which is meant to be static called. It executes all the operations in a batch, but returns the responses before executing liquidity checks on the accounts involved in the tx. In addition it is possible to add a call to an arbitrary address with and arbitrary payload to a batch, as long as the function invoked doesn't change state (it must be a view function).
+
+By combining batch simulation and calls to external contracts, we are able to build powerful UX for the users. For example we can add a call to the lens contract `EulerGeneralView` to a simulated batch to receive all state changes to the accounts involved, which the execution of the transaction would result in. In fact we can check any state changes to the chain, as long as there is a view function available (wallet balances, dex slippage etc.). 
+
+Because the responses from the batch are returned before the liquidity checks are executed (as long as liquidity check deferral is requested), it is also possible to simulate the state of the account the current batch would result in, even when that would mean collateral violation (health score < 1) or borrow isolation violation. Having full information, the user is then able to modify the batch accordingly.
+
+The SDK provides a helper method `simulateBatch`
+
+<b>e.simulateBatch(deferredLiquidity, simulationItems[, estimateGasItems])</b>
+```js
+const {
+  simulation,
+  gas,
+  liquidityCheckError
+} = await e.simulateBatch(
+  deferredLiquidity,
+  simulationItem,
+  estimateGasItems
+)
+// params:
+// `deferredLiquidity` - array of accounts to defer liquidity checks for
+// `simulationItems` - array of batch items, in the same format as `buildBatch`
+// `estimateGasItems` - optionl array of batch items used for gas estimation.
+///                     Probably excluding any helper view calls
+
+// returns:
+// `simulation` - decoded responses from functions called in a batch
+// `gas` - gas estimations if tx passes liquidity checks
+// `liquidityCheckError` - an error thrown by liquidity checks
+```
+
+#### Batch simulation external view items
+Internally the calls to external view functions are executed by `Exec`'s `doStaticCall` function. As long as the contract called is initialized in the SDK (or it is passed in as an instance), it is possible to define the call in a similar way to a regular batch item, placing the call definition in `staticCall` property. The responses will be unwrapped and decoded automatically.
+
+```js
+const e = new Euler(signer)
+e.addContract("EulerGeneralView")
+
+const items = [
+  {
+    contract: "eToken",
+    address: EUSDC_ADDRESS,
+    method: "deposit",
+    args: [0, 1M_USDC]
+  },
+  {
+    staticCall: {
+      contract: "eulerGeneralView",
+      method: "doQuery"
+      args: {
+        eulerContract: e.contracts.euler.address,
+        account: MY_ACCOUNT
+        markets: [USDC_ADDRESS]
+      }
+    }
+  }
+]
+
+const { simulation } = await e.simulateBatch([MY_ACCOUNT], items)
+// simulation[1] contains results from the lens call after the deposit is processed
 ```
 
 ### Signing and using permits
