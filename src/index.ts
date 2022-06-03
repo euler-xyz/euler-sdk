@@ -1,8 +1,8 @@
-import { ethers, ContractInterface, providers } from "ethers";
+import { ethers, ContractInterface, providers, Contract } from "ethers";
 import invariant from "tiny-invariant";
 import { abi as ERC20Abi, ERC20Contract } from "./ERC20";
 import { signPermit } from "./permits";
-import { uncapitalize, validateAddress } from "./utils";
+import { uncapitalize, validateAddress, secondsFromNow } from "./utils";
 
 import addressesMainnet from "@eulerxyz/euler-interfaces/addresses/addresses-mainnet.json";
 import addressesRopsten from "@eulerxyz/euler-interfaces/addresses/addresses-ropsten.json";
@@ -17,18 +17,29 @@ import {
   Contracts,
   TokenCache,
 } from "./types";
-import { ETokenContract, DTokenContract, PTokenContract } from "./eulerTypes";
+import {
+  EulContract,
+  EulerContract,
+  PTokenContract,
+  ETokenContract,
+  DTokenContract,
+  ExecContract,
+  LiquidationContract,
+  MarketsContract,
+  SwapContract,
+  EulStakesContract,
+  EulDistributorContract,
+  EulerGeneralViewContract,
+} from "./eulerTypes";
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
 const MULTI_PROXY_MODULES = ["eToken", "dToken", "pToken"];
+const DEFAULT_PERMIT_DEADLINE_SECONDS = 60 * 60;
 const LIQUIDITY_CHECK_ERRORS = [
   "e/collateral-violation",
   "e/borrow-isolation-violation",
 ];
-
-const DEFAULT_PERMIT_DEADLINE = () =>
-  Math.floor((Date.now() + 60 * 60 * 1000) / 1000);
 
 class Euler {
   readonly chainId: number;
@@ -47,14 +58,20 @@ class Euler {
     networkConfig?: NetworkConfig
   ) {
     this.chainId = chainId;
-    this.contracts = {};
+    this.contracts = this._loadEulerContracts();
     this._tokenCache = {};
 
     if (this.chainId === 1) {
-      this.addresses = addressesMainnet;
+      const { eul: eulConfig, ...addresses } = addressesMainnet;
+      this.eulTokenConfig = eulConfig;
+      this.addresses = addresses as any;
+
       this.referenceAsset = WETH_MAINNET;
     } else if (this.chainId === 3) {
-      this.addresses = addressesRopsten;
+      const { eul: eulConfig, ...addresses } = addressesRopsten;
+      this.eulTokenConfig = eulConfig;
+      this.addresses = addresses as any;
+  
       this.referenceAsset = WETH_ROPSTEN;
     } else {
       invariant(
@@ -73,17 +90,6 @@ class Euler {
     this.abis = eulerAbis;
 
     this.connect(signerOrProvider);
-
-    this.addContract("Euler");
-    this.addContract("Exec");
-    this.addContract("Liquidation");
-    this.addContract("Markets");
-    this.addContract("Swap");
-
-    if (this.addresses.eul) {
-      this.addContract("Eul", eulerAbis.eul, this.addresses.eul.address);
-      this.eulTokenConfig = this.addresses.eul;
-    }
   }
 
   connect(signerOrProvider: SignerOrProvider) {
@@ -250,7 +256,7 @@ class Euler {
       spender = this.contracts.euler.address,
       value = ethers.constants.MaxUint256,
       allowed = true,
-      deadline = DEFAULT_PERMIT_DEADLINE(),
+      deadline = secondsFromNow(DEFAULT_PERMIT_DEADLINE_SECONDS),
     },
     signer = this.getSigner()
   ) {
@@ -274,7 +280,7 @@ class Euler {
     {
       value = ethers.constants.MaxUint256,
       allowed = true,
-      deadline = DEFAULT_PERMIT_DEADLINE(),
+      deadline = secondsFromNow(DEFAULT_PERMIT_DEADLINE_SECONDS),
     },
     allowError = false,
     signer = this.getSigner()
@@ -367,6 +373,35 @@ class Euler {
     }
 
     return decoded;
+  }
+
+  private _loadEulerContracts(): Contracts {
+    const createContract = (name) =>
+      new Contract(
+        this.addresses[name],
+        this.abis[name],
+        this._signerOrProvider
+      );
+
+    return {
+      euler: createContract("Euler") as EulerContract,
+      exec: createContract("Exec") as ExecContract,
+      liquidation: createContract("Liquidation") as LiquidationContract,
+      markets: createContract("Markets") as MarketsContract,
+      swap: createContract("Swap") as SwapContract,
+      eulStakes: createContract("EulStakes") as EulStakesContract,
+      eulDistributor: createContract(
+        "EulDistributor"
+      ) as EulDistributorContract,
+      eulerGeneralView: createContract(
+        "EulerGeneralView"
+      ) as EulerGeneralViewContract,
+      eul: new Contract(
+        this.eulTokenConfig.address,
+        this.abis.eul,
+        this._signerOrProvider
+      ) as EulContract,
+    };
   }
 }
 

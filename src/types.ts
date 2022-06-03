@@ -51,8 +51,7 @@ export type TokenWithPermit = Token & {
 };
 
 export type EulerAddresses = {
-  [contractName: string]: string | TokenWithPermit;
-  eul?: TokenWithPermit;
+  [contractName: string]: string;
 };
 
 export type NetworkConfig = {
@@ -63,15 +62,15 @@ export type NetworkConfig = {
 export type SignerOrProvider = providers.Provider | Signer;
 
 export type Contracts = {
-  euler?: contracts.EulerContract;
-  exec?: contracts.ExecContract;
-  liquidation?: contracts.LiquidationContract;
-  markets?: contracts.MarketsContract;
-  swap?: contracts.SwapContract;
-  eulStakes?: contracts.EulStakesContract;
-  eulDistributor?: contracts.EulDistributorContract;
-  eulerGeneralView?: contracts.EulerGeneralViewContract;
-  eul?: contracts.EulContract;
+  euler: contracts.EulerContract;
+  exec: contracts.ExecContract;
+  liquidation: contracts.LiquidationContract;
+  markets: contracts.MarketsContract;
+  swap: contracts.SwapContract;
+  eulStakes: contracts.EulStakesContract;
+  eulDistributor: contracts.EulDistributorContract;
+  eulerGeneralView: contracts.EulerGeneralViewContract;
+  eul: contracts.EulContract;
   [contractName: string]: Contract;
 };
 

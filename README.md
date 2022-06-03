@@ -25,8 +25,12 @@ const e = new Euler(signer);
 
 ## Interacting with the smart contracts
 
-### Main modules
-By default, the SDK provides instances of the [ethers.Contract](https://docs.ethers.io/v5/api/contract/contract/) of the main Euler modules: `Euler`, `Exec`, `Liquidation`, `Markets` and `Swap`.
+### Euler contracts
+By default, the SDK provides instances of the [ethers.Contract](https://docs.ethers.io/v5/api/contract/contract/) of:
+- main Euler modules: `Euler`, `Exec`, `Liquidation`, `Markets` and `Swap`
+- mining contracts `EulStakes` and `EulDistributor`
+- peripheries `FlashLoan` and `EulerGeneralView`
+- native governance token `EUL`
 
 ```js
 // activate a new market
@@ -39,29 +43,9 @@ const liquidationOpportunity = await e.contracts.liquidation.callStatic.checkLiq
   underlying,
   collateral
 )
-```
 
-### Peripheries
-
-In addition to the main modules, the SDK contains configuration for the mining contracts `EulStakes` and `EulDistributor` as well as peripheries `FlashLoan` and `EulerGeneralView`. They need to be explicitly initiated:
-
-```js
-e.addContract("EulStakes")
-e.addContract("FlashLoan")
-```
-
-### Eul token
-
-Euler's native governance token `Eul` is also available:
-
-```js
+// get EUL balance
 const balance = await e.contracts.eul.balanceOf(myAccount)
-```
-
-Additionally, the token configuration like decimals, logo, permit data are provided in `eulTokenConfig` property:
-
-```js
-const { logo, extensions: { permit: { domain } } } = e.eulerTokenConfig
 ```
 
 ### eTokens, dTokens, pTokens
@@ -85,6 +69,15 @@ The SDK can attach any external contract with the `addContract` method. In this 
 e.addContract("weth", WETH_ABI, WETH_ADDRESS)
 
 await e.contracts.weth.deposit({ value: ONE_ETH })
+```
+
+
+### Eul token config
+
+The token configuration like decimals, logo, permit data are provided in `eulTokenConfig` property:
+
+```js
+const { logo, extensions: { permit: { domain } } } = e.eulerTokenConfig
 ```
 
 ### Batch transactions

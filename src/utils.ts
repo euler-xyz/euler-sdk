@@ -7,3 +7,6 @@ export const uncapitalize = (str: string) =>
 export const validateAddress = (address: string) => {
   invariant(ethers.utils.isAddress(address), "Invalid address");
 };
+
+export const secondsFromNow = (seconds: number) =>
+  Math.floor((Date.now() + seconds * 1000) / 1000);
