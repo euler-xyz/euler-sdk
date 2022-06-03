@@ -73,9 +73,9 @@ export const signPermit = async (
     throw new Error("Invalid signer");
   }
 
-  const sign = signer._signTypedData
-    ? signer._signTypedData.bind(signer)
-    : signer.signTypedData.bind(signer);
+  const sign = (signer as any)._signTypedData
+    ? (signer as any)._signTypedData.bind(signer)
+    : (signer as any).signTypedData.bind(signer);
 
   const signerAddress = await signer.getAddress();
 

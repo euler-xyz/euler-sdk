@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { ethers, Contract, ContractInterface, providers } from "ethers";
 import invariant from "tiny-invariant";
 import ERC20Abi from "./ERC20Abi";
 import { signPermit } from "./permits";
@@ -6,7 +6,16 @@ import { uncapitalize, validateAddress } from "./utils";
 
 import addressesMainnet from "@eulerxyz/euler-interfaces/addresses/addresses-mainnet.json";
 import addressesRopsten from "@eulerxyz/euler-interfaces/addresses/addresses-ropsten.json";
-import eulerAbis from "./eulerAbis";
+import * as eulerAbis from "./eulerAbis";
+
+import {
+  BatchItem,
+  TokenWithPermit,
+  Token,
+  EulerAddresses,
+  NetworkConfig,
+  SignerOrProvider,
+} from "./types";
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
@@ -20,15 +29,46 @@ const DEFAULT_PERMIT_DEADLINE = () =>
   Math.floor((Date.now() + 60 * 60 * 1000) / 1000);
 
 class Euler {
-  constructor(signerOrProvider, chainId = 1, networkConfig = null) {
+  readonly chainId: number;
+  readonly contracts: { [contractName: string]: Contract };
+  readonly abis: { [contractName: string]: ContractInterface };
+  readonly addresses: EulerAddresses;
+  readonly eulTokenConfig: TokenWithPermit;
+  readonly referenceAsset: string;
+
+  private readonly _tokenCache: { [address: string]: Contract };
+  private _signerOrProvider?: SignerOrProvider;
+
+  constructor(
+    signerOrProvider?: SignerOrProvider,
+    chainId = 1,
+    networkConfig?: NetworkConfig
+  ) {
     this.chainId = chainId;
     this.contracts = {};
-    this.abis = {};
-    this.addresses = {};
-    this.eulTokenConfig = {};
     this._tokenCache = {};
 
-    this._loadInterfaces(networkConfig);
+    if (this.chainId === 1) {
+      this.addresses = addressesMainnet;
+      this.referenceAsset = WETH_MAINNET;
+    } else if (this.chainId === 3) {
+      this.addresses = addressesRopsten;
+      this.referenceAsset = WETH_ROPSTEN;
+    } else {
+      invariant(
+        networkConfig.addresses,
+        `Missing addresses for chainId ${this.chainId}`
+      );
+      invariant(
+        networkConfig.referenceAsset,
+        `Missing reference asset for chainId ${this.chainId}`
+      );
+
+      this.addresses = networkConfig.addresses;
+      this.referenceAsset = networkConfig.referenceAsset;
+    }
+
+    this.abis = eulerAbis;
 
     this.connect(signerOrProvider);
 
@@ -60,7 +100,9 @@ class Euler {
       ethers.providers.BaseProvider.isProvider(this._signerOrProvider)
     ) {
       try {
-        return this._signerOrProvider.getSigner();
+        return (
+          this._signerOrProvider as providers.JsonRpcProvider
+        ).getSigner();
       } catch {}
     }
     return null;
@@ -78,7 +120,7 @@ class Euler {
     return null;
   }
 
-  addContract(name, abi = null, address = null) {
+  addContract(name: string, abi?: ContractInterface, address?: string) {
     invariant(name, "Contract name is required");
 
     name = uncapitalize(name);
@@ -86,7 +128,7 @@ class Euler {
     abi = abi || this.abis[name];
     invariant(Array.isArray(abi), "Missing or invalid abi");
 
-    address = address || this.addresses[name];
+    address = address || (this.addresses[name] as string);
     validateAddress(address);
 
     this.contracts[name] = new ethers.Contract(
@@ -98,30 +140,30 @@ class Euler {
     this.addresses[name] = address;
   }
 
-  erc20(address) {
+  erc20(address: string) {
     validateAddress(address);
     return this._getToken(address, ERC20Abi);
   }
 
-  eToken(address) {
+  eToken(address: string) {
     validateAddress(address);
     return this._getToken(address, this.abis.eToken);
   }
 
-  dToken(address) {
+  dToken(address: string) {
     validateAddress(address);
     return this._getToken(address, this.abis.dToken);
   }
 
-  pToken(address) {
+  pToken(address: string) {
     validateAddress(address);
     return this._getToken(address, this.abis.pToken);
   }
 
-  buildBatch(items = []) {
+  buildBatch(items: BatchItem[]) {
     return items.map((i) => {
       let item = { ...i };
-      if (item.staticCall) {
+      if ("staticCall" in item) {
         const scContract = this._batchItemToContract(item.staticCall);
         const scPayload = scContract.interface.encodeFunctionData(
           item.staticCall.method,
@@ -129,7 +171,7 @@ class Euler {
         );
 
         item = {
-          allowError: item.allowError,
+          allowError: item.staticCall.allowError,
           contract: "exec",
           method: "doStaticCall",
           args: [scContract.address, scPayload],
@@ -146,7 +188,11 @@ class Euler {
     });
   }
 
-  async simulateBatch(deferredLiquidity, items = [], estimateGasItems = null) {
+  async simulateBatch(
+    deferredLiquidity: string[],
+    items: BatchItem[],
+    estimateGasItems?: BatchItem[]
+  ) {
     invariant(Array.isArray(items), "Expecting an array of batch items");
 
     invariant(
@@ -197,7 +243,7 @@ class Euler {
   }
 
   signPermit(
-    token,
+    token: TokenWithPermit,
     {
       spender = this.contracts.euler.address,
       value = ethers.constants.MaxUint256,
@@ -222,7 +268,7 @@ class Euler {
   }
 
   async signPermitBatchItem(
-    token,
+    token: TokenWithPermit,
     {
       value = ethers.constants.MaxUint256,
       allowed = true,
@@ -282,7 +328,7 @@ class Euler {
     return batchItem;
   }
 
-  _getToken(address, abi) {
+  private _getToken(address, abi) {
     if (!this._tokenCache[address]) {
       this._tokenCache[address] = new ethers.Contract(
         address,
@@ -294,7 +340,7 @@ class Euler {
     return this._tokenCache[address].connect(this._signerOrProvider);
   }
 
-  _batchItemToContract(item) {
+  private _batchItemToContract(item) {
     if (item.contract instanceof ethers.Contract) return item.contract;
     if (this.contracts[item.contract]) return this.contracts[item.contract];
 
@@ -305,7 +351,7 @@ class Euler {
     throw new Error(`Unknown contract ${item.contract}`);
   }
 
-  _decodeBatch(items, resp) {
+  private _decodeBatch(items, resp) {
     const decoded = [];
 
     for (let i = 0; i < resp.length; i++) {
@@ -320,30 +366,6 @@ class Euler {
 
     return decoded;
   }
-
-  _loadInterfaces(networkConfig = {}) {
-    if (this.chainId === 1) {
-      this.addresses = addressesMainnet;
-      this.referenceAsset = WETH_MAINNET;
-    } else if (this.chainId === 3) {
-      this.addresses = addressesRopsten;
-      this.referenceAsset = WETH_ROPSTEN;
-    } else {
-      invariant(
-        networkConfig.addresses,
-        `Missing addresses for chainId ${this.chainId}`
-      );
-      invariant(
-        networkConfig.referenceAsset,
-        `Missing reference asset for chainId ${this.chainId}`
-      );
-
-      this.addresses = networkConfig.addresses;
-      this.referenceAsset = networkConfig.referenceAsset;
-    }
-
-    this.abis = eulerAbis;
-  }
 }
 
-export { Euler };
+export { Euler, BatchItem, Token, TokenWithPermit, NetworkConfig };
