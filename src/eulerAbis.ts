@@ -1,3 +1,4 @@
+export { abi as eul } from "@eulerxyz/euler-interfaces/abis/Eul.json";
 export { abi as euler } from "@eulerxyz/euler-interfaces/abis/Euler.json";
 export { abi as pToken } from "@eulerxyz/euler-interfaces/abis/PToken.json";
 export { abi as eToken } from "@eulerxyz/euler-interfaces/abis/modules/EToken.json";

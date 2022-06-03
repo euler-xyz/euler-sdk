@@ -1,4 +1,6 @@
 import { Contract, providers, Signer } from "ethers";
+import * as contracts from "./eulerTypes";
+import { ERC20Contract } from "./ERC20";
 
 type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Pick<
   T,
@@ -56,6 +58,28 @@ export type EulerAddresses = {
 export type NetworkConfig = {
   addresses: EulerAddresses;
   referenceAsset: string;
-}
+};
 
-export type SignerOrProvider = providers.Provider | Signer
+export type SignerOrProvider = providers.Provider | Signer;
+
+export type Contracts = {
+  euler?: contracts.EulerContract;
+  exec?: contracts.ExecContract;
+  liquidation?: contracts.LiquidationContract;
+  markets?: contracts.MarketsContract;
+  swap?: contracts.SwapContract;
+  eulStakes?: contracts.EulStakesContract;
+  eulDistributor?: contracts.EulDistributorContract;
+  eulerGeneralView?: contracts.EulerGeneralViewContract;
+  eul?: contracts.EulContract;
+  [contractName: string]: Contract;
+};
+
+export type TokenCache = {
+  [address: string]:
+    | Contract
+    | contracts.ETokenContract
+    | contracts.DTokenContract
+    | contracts.PTokenContract
+    | ERC20Contract;
+}

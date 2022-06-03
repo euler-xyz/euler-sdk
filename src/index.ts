@@ -1,6 +1,6 @@
-import { ethers, Contract, ContractInterface, providers } from "ethers";
+import { ethers, ContractInterface, providers } from "ethers";
 import invariant from "tiny-invariant";
-import ERC20Abi from "./ERC20Abi";
+import { abi as ERC20Abi, ERC20Contract } from "./ERC20";
 import { signPermit } from "./permits";
 import { uncapitalize, validateAddress } from "./utils";
 
@@ -11,11 +11,13 @@ import * as eulerAbis from "./eulerAbis";
 import {
   BatchItem,
   TokenWithPermit,
-  Token,
   EulerAddresses,
   NetworkConfig,
   SignerOrProvider,
+  Contracts,
+  TokenCache,
 } from "./types";
+import { ETokenContract, DTokenContract, PTokenContract } from "./eulerTypes";
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
@@ -30,13 +32,13 @@ const DEFAULT_PERMIT_DEADLINE = () =>
 
 class Euler {
   readonly chainId: number;
-  readonly contracts: { [contractName: string]: Contract };
+  readonly contracts: Contracts;
   readonly abis: { [contractName: string]: ContractInterface };
   readonly addresses: EulerAddresses;
   readonly eulTokenConfig: TokenWithPermit;
   readonly referenceAsset: string;
 
-  private readonly _tokenCache: { [address: string]: Contract };
+  private readonly _tokenCache: TokenCache;
   private _signerOrProvider?: SignerOrProvider;
 
   constructor(
@@ -79,12 +81,12 @@ class Euler {
     this.addContract("Swap");
 
     if (this.addresses.eul) {
-      this.contracts.eul = this.erc20(this.addresses.eul.address);
+      this.addContract("Eul", eulerAbis.eul, this.addresses.eul.address);
       this.eulTokenConfig = this.addresses.eul;
     }
   }
 
-  connect(signerOrProvider) {
+  connect(signerOrProvider: SignerOrProvider) {
     this._signerOrProvider = signerOrProvider;
     Object.entries(this.contracts).forEach(([key, c]) => {
       this.contracts[key] = c.connect(this._signerOrProvider);
@@ -142,22 +144,22 @@ class Euler {
 
   erc20(address: string) {
     validateAddress(address);
-    return this._getToken(address, ERC20Abi);
+    return this._getToken(address, ERC20Abi) as ERC20Contract;
   }
 
   eToken(address: string) {
     validateAddress(address);
-    return this._getToken(address, this.abis.eToken);
+    return this._getToken(address, this.abis.eToken) as ETokenContract;
   }
 
   dToken(address: string) {
     validateAddress(address);
-    return this._getToken(address, this.abis.dToken);
+    return this._getToken(address, this.abis.dToken) as DTokenContract;
   }
 
   pToken(address: string) {
     validateAddress(address);
-    return this._getToken(address, this.abis.pToken);
+    return this._getToken(address, this.abis.pToken) as PTokenContract;
   }
 
   buildBatch(items: BatchItem[]) {
@@ -368,4 +370,4 @@ class Euler {
   }
 }
 
-export { Euler, BatchItem, Token, TokenWithPermit, NetworkConfig };
+export { Euler };
