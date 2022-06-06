@@ -14,7 +14,10 @@ The package provides a single named export - the Euler class
 import { Euler } from "@eulerxyz/euler-sdk"
 ```
 
-The constructor takes a single required arguement - `signerOrProvider`, similar to ethers. The second argument is the `chainId`. Currently the SDK contains built in configurations for mainnet (chainId = 1), which is also default, and ropsten (chainId = 3) deployments.
+The constructor arguments are all optional:
+- `signerOrProvider` Ethers Signer or Provider instance. 
+- `chainId` Currently the SDK contains built in configurations for mainnet (chainId = 1), which is also default, and ropsten (chainId = 3) deployments.
+- `networkConfig` Required when chainId is not 1 or 3. Object containing euler contract addresses, reference asset address and EUL token config. 
 
 ```js
 const provider = new ethers.providers.JsonRpcProvider("<JSON_RPC_URL>")

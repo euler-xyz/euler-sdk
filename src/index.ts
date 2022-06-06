@@ -9,7 +9,9 @@ import addressesRopsten from "@eulerxyz/euler-interfaces/addresses/addresses-rop
 import * as eulerAbis from "./eulerAbis";
 
 import {
+  BaseBatchItem,
   BatchItem,
+  BatchResponse,
   TokenWithPermit,
   EulerAddresses,
   NetworkConfig,
@@ -34,7 +36,6 @@ import {
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
-const MULTI_PROXY_MODULES = ["eToken", "dToken", "pToken"];
 const DEFAULT_PERMIT_DEADLINE_SECONDS = 60 * 60;
 const LIQUIDITY_CHECK_ERRORS = [
   "e/collateral-violation",
@@ -58,8 +59,8 @@ class Euler {
     networkConfig?: NetworkConfig
   ) {
     this.chainId = chainId;
-    this.contracts = this._loadEulerContracts();
     this._tokenCache = {};
+    this._signerOrProvider = signerOrProvider;
 
     if (this.chainId === 1) {
       const { eul: eulConfig, ...addresses } = addressesMainnet;
@@ -71,9 +72,9 @@ class Euler {
       const { eul: eulConfig, ...addresses } = addressesRopsten;
       this.eulTokenConfig = eulConfig;
       this.addresses = addresses as any;
-  
+
       this.referenceAsset = WETH_ROPSTEN;
-    } else {
+    } else if (networkConfig) {
       invariant(
         networkConfig.addresses,
         `Missing addresses for chainId ${this.chainId}`
@@ -85,17 +86,20 @@ class Euler {
 
       this.addresses = networkConfig.addresses;
       this.referenceAsset = networkConfig.referenceAsset;
+      this.eulTokenConfig = networkConfig.eulTokenConfig;
+    } else {
+      throw new Error("Unknown configuration");
     }
 
     this.abis = eulerAbis;
 
-    this.connect(signerOrProvider);
+    this.contracts = this._loadEulerContracts();
   }
 
   connect(signerOrProvider: SignerOrProvider) {
     this._signerOrProvider = signerOrProvider;
     Object.entries(this.contracts).forEach(([key, c]) => {
-      this.contracts[key] = c.connect(this._signerOrProvider);
+      this.contracts[key] = c.connect(signerOrProvider);
     });
 
     return this;
@@ -169,8 +173,8 @@ class Euler {
   }
 
   buildBatch(items: BatchItem[]) {
-    return items.map((i) => {
-      let item = { ...i };
+    return items.map((currItem) => {
+      let item = { ...currItem };
       if ("staticCall" in item) {
         const scContract = this._batchItemToContract(item.staticCall);
         const scPayload = scContract.interface.encodeFunctionData(
@@ -261,6 +265,10 @@ class Euler {
     signer = this.getSigner()
   ) {
     invariant(
+      ethers.Signer.isSigner(this._signerOrProvider),
+      "Signer in not provided"
+    );
+    invariant(
       token && token.extensions && token.extensions.permit,
       "Invalid token or missing permit config"
     );
@@ -271,7 +279,7 @@ class Euler {
       token.address,
       { type, variant, domain },
       { spender, value, allowed, deadline },
-      signer
+      signer as ethers.Signer
     );
   }
 
@@ -336,7 +344,7 @@ class Euler {
     return batchItem;
   }
 
-  private _getToken(address, abi) {
+  private _getToken(address: string, abi: ContractInterface) {
     if (!this._tokenCache[address]) {
       this._tokenCache[address] = new ethers.Contract(
         address,
@@ -345,25 +353,32 @@ class Euler {
       );
     }
 
-    return this._tokenCache[address].connect(this._signerOrProvider);
+    return this._signerOrProvider
+      ? this._tokenCache[address].connect(this._signerOrProvider)
+      : this._tokenCache[address];
   }
 
-  private _batchItemToContract(item) {
+  private _batchItemToContract(item: BaseBatchItem) {
     if (item.contract instanceof ethers.Contract) return item.contract;
     if (this.contracts[item.contract]) return this.contracts[item.contract];
 
-    if (MULTI_PROXY_MODULES.includes(item.contract)) {
-      return this[item.contract](item.address);
+    if (item.address) {
+      if (item.contract === "eToken") return this.eToken(item.address);
+      if (item.contract === "dToken") return this.dToken(item.address);
+      if (item.contract === "pToken") return this.pToken(item.address);
+      if (item.contract === "erc20") return this.erc20(item.address);
     }
 
     throw new Error(`Unknown contract ${item.contract}`);
   }
 
-  private _decodeBatch(items, resp) {
+  private _decodeBatch(items: BatchItem[], resp: BatchResponse[]) {
     const decoded = [];
 
     for (let i = 0; i < resp.length; i++) {
-      const item = items[i].staticCall || items[i];
+      let item = items[i];
+      if ("staticCall" in item) item = item.staticCall;
+
       decoded.push(
         this._batchItemToContract(item).interface.decodeFunctionResult(
           item.method,
@@ -376,10 +391,10 @@ class Euler {
   }
 
   private _loadEulerContracts(): Contracts {
-    const createContract = (name) =>
+    const createContract = (name: string) =>
       new Contract(
-        this.addresses[name],
-        this.abis[name],
+        this.addresses[uncapitalize(name)],
+        this.abis[uncapitalize(name)],
         this._signerOrProvider
       );
 

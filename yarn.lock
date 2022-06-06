@@ -1320,10 +1320,10 @@
     "@ethersproject/properties" "^5.6.0"
     "@ethersproject/strings" "^5.6.1"
 
-"@eulerxyz/euler-interfaces@^1.0.11":
-  "integrity" "sha512-RkrgKpEKUQCLoDDUQtZXp8azD6puINsF1QmaSnU8lhpPouLujLxKt5wfX+2dUHGJGfbWIRp/U6TEAVVzdvbDlw=="
-  "resolved" "https://registry.npmjs.org/@eulerxyz/euler-interfaces/-/euler-interfaces-1.0.11.tgz"
-  "version" "1.0.11"
+"@eulerxyz/euler-interfaces@^1.0.12":
+  "integrity" "sha512-phUtza1Qidz7zqgJCWvjgdwzQgOxcrJNRWkKEdQQ1b8FBSWlhy8RC7vRJcMtmXHbHwd1lQuMstutAnHqjgWb6A=="
+  "resolved" "https://registry.npmjs.org/@eulerxyz/euler-interfaces/-/euler-interfaces-1.0.12.tgz"
+  "version" "1.0.12"
 
 "@jridgewell/gen-mapping@^0.1.0":
   "integrity" "sha512-sQXCasFk+U8lWYEe66WxRDOE9PjVz4vSM51fTu3Hw+ClTpUSQb718772vH3pyS5pShp6lvQM7SxgIDXXXmOX7w=="

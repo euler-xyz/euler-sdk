@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { BigNumberish, ethers } from "ethers";
 
 const ABI_EIP2612 = [
   "function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s)",
@@ -64,15 +64,26 @@ const TYPES_PERMIT_ALLOWED = {
 };
 
 export const signPermit = async (
-  tokenAddress,
-  { type, variant, domain },
-  { spender, value, allowed, deadline },
-  signer
+  tokenAddress: string,
+  { type, variant, domain }: { type: string; variant?: string; domain: any },
+  {
+    spender,
+    value,
+    allowed,
+    deadline,
+  }: {
+    spender: string;
+    value?: BigNumberish;
+    allowed?: boolean;
+    deadline: number;
+  },
+  signer: ethers.Signer
 ) => {
   if (!ethers.Signer.isSigner(signer)) {
     throw new Error("Invalid signer");
   }
 
+  // future proof experimental feature
   const sign = (signer as any)._signTypedData
     ? (signer as any)._signTypedData.bind(signer)
     : (signer as any).signTypedData.bind(signer);
@@ -134,4 +145,3 @@ export const signPermit = async (
 
   throw new Error(`Unknown permit type: ${type}`);
 };
-

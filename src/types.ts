@@ -1,4 +1,4 @@
-import { Contract, providers, Signer } from "ethers";
+import { Contract, providers, Signer, BytesLike, ContractInterface } from "ethers";
 import * as contracts from "./eulerTypes";
 import { ERC20Contract } from "./ERC20";
 
@@ -10,7 +10,7 @@ type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Pick<
     [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>;
   }[Keys];
 
-type BaseBatchItem = {
+export type BaseBatchItem = {
   contract: string | Contract;
   address?: string;
   method: string;
@@ -19,6 +19,11 @@ type BaseBatchItem = {
 };
 
 export type BatchItem = BaseBatchItem | { staticCall: BaseBatchItem };
+
+export type BatchResponse = {
+  success: boolean;
+  result: BytesLike;
+};
 
 export type Token = {
   name: string;
@@ -51,12 +56,38 @@ export type TokenWithPermit = Token & {
 };
 
 export type EulerAddresses = {
+  euler: string;
+  exec: string;
+  liquidation: string;
+  markets: string;
+  swap: string;
+  eulStakes: string;
+  eulDistributor: string;
+  eulerGeneralView: string;
+  eul: string;
   [contractName: string]: string;
+};
+
+export type EulerABIs = {
+  euler: ContractInterface;
+  exec: ContractInterface;
+  liquidation: ContractInterface;
+  markets: ContractInterface;
+  swap: ContractInterface;
+  eulStakes: ContractInterface;
+  eulDistributor: ContractInterface;
+  eulerGeneralView: ContractInterface;
+  eul: ContractInterface;
+  eToken: ContractInterface;
+  dToken: ContractInterface;
+  pToken: ContractInterface;
+  [contractName: string]: ContractInterface;
 };
 
 export type NetworkConfig = {
   addresses: EulerAddresses;
   referenceAsset: string;
+  eulTokenConfig: TokenWithPermit;
 };
 
 export type SignerOrProvider = providers.Provider | Signer;
@@ -81,4 +112,4 @@ export type TokenCache = {
     | contracts.DTokenContract
     | contracts.PTokenContract
     | ERC20Contract;
-}
+};
