@@ -1,6 +1,6 @@
 {
   "name": "@eulerxyz/euler-sdk",
-  "version": "0.2.0-beta.9",
+  "version": "0.2.0-beta.10",
   "description": "Developer SDK for building on Euler platform",
   "source": "src/index.ts",
   "main": "./dist/index.js",
@@ -31,7 +31,6 @@
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
-    "microbundle": "^0.15.0",
-    "typescript": "^4.6.4"
+    "microbundle": "^0.15.0"
   }
 }

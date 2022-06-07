@@ -9,7 +9,6 @@ import addressesRopsten from "@eulerxyz/euler-interfaces/addresses/addresses-rop
 import * as eulerAbis from "./eulerAbis";
 
 import {
-  BaseBatchItem,
   BatchItem,
   BatchResponse,
   TokenWithPermit,
@@ -175,15 +174,15 @@ class Euler {
   buildBatch(items: BatchItem[]) {
     return items.map((currItem) => {
       let item = { ...currItem };
-      if ("staticCall" in item) {
-        const scContract = this._batchItemToContract(item.staticCall);
+      if (item.staticCall) {
+        const scContract = this._batchItemToContract(item);
         const scPayload = scContract.interface.encodeFunctionData(
-          item.staticCall.method,
-          item.staticCall.args
+          item.method,
+          item.args
         );
 
         item = {
-          allowError: item.staticCall.allowError,
+          allowError: item.allowError,
           contract: "exec",
           method: "doStaticCall",
           args: [scContract.address, scPayload],
@@ -358,7 +357,7 @@ class Euler {
       : this._tokenCache[address];
   }
 
-  private _batchItemToContract(item: BaseBatchItem) {
+  private _batchItemToContract(item: BatchItem) {
     if (item.contract instanceof ethers.Contract) return item.contract;
     if (this.contracts[item.contract]) return this.contracts[item.contract];
 
@@ -373,18 +372,22 @@ class Euler {
   }
 
   private _decodeBatch(items: BatchItem[], resp: BatchResponse[]) {
-    const decoded = [];
+    const decoded: any[] = [];
 
     for (let i = 0; i < resp.length; i++) {
-      let item = items[i];
-      if ("staticCall" in item) item = item.staticCall;
-
-      decoded.push(
-        this._batchItemToContract(item).interface.decodeFunctionResult(
+      const item = items[i];
+      let decodedItem; 
+      try {
+        decodedItem = this._batchItemToContract(item).interface.decodeFunctionResult(
           item.method,
           resp[i].result
         )
-      );
+      } catch (e) {
+        if (!item.allowError) throw e;
+        decodedItem = e;
+      }
+
+      decoded.push(decodedItem);
     }
 
     return decoded;

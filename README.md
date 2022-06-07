@@ -151,8 +151,8 @@ const {
 // `liquidityCheckError` - an error thrown by liquidity checks
 ```
 
-#### Batch simulation external view items
-Internally the calls to external view functions are executed by `Exec`'s `doStaticCall` function. As long as the contract called is initialized in the SDK (or it is passed in as an instance), it is possible to define the call in a similar way to a regular batch item, placing the call definition in `staticCall` property. The responses will be unwrapped and decoded automatically.
+#### External static calls in batch simulations
+Internally the calls to external view functions are executed by `Exec`'s `doStaticCall` function. As long as the contract called is initialized in the SDK (or it is passed in as an instance), it is possible to define the call in a similar way to a regular batch item, setting a `staticCall` flag to `true`. The responses will be unwrapped and decoded automatically.
 
 ```js
 const e = new Euler(signer)
@@ -166,14 +166,13 @@ const items = [
     args: [0, 1M_USDC]
   },
   {
-    staticCall: {
-      contract: "eulerGeneralView",
-      method: "doQuery"
-      args: {
-        eulerContract: e.contracts.euler.address,
-        account: MY_ACCOUNT
-        markets: [USDC_ADDRESS]
-      }
+    staticCall: true,
+    contract: "eulerGeneralView",
+    method: "doQuery"
+    args: {
+      eulerContract: e.contracts.euler.address,
+      account: MY_ACCOUNT
+      markets: [USDC_ADDRESS]
     }
   }
 ]

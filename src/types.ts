@@ -10,15 +10,14 @@ type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Pick<
     [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>;
   }[Keys];
 
-export type BaseBatchItem = {
+export type BatchItem = {
   contract: string | Contract;
   address?: string;
   method: string;
   args: any[];
   allowError?: boolean;
+  staticCall?: boolean;
 };
-
-export type BatchItem = BaseBatchItem | { staticCall: BaseBatchItem };
 
 export type BatchResponse = {
   success: boolean;
