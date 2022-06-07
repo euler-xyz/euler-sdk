@@ -177,8 +177,8 @@ class Euler {
       if (item.staticCall) {
         const scContract = this._batchItemToContract(item);
         const scPayload = scContract.interface.encodeFunctionData(
-          item.method,
-          item.args
+          item.method as any,
+          item.args as any
         );
 
         item = {
@@ -194,7 +194,7 @@ class Euler {
       return {
         allowError: Boolean(item.allowError),
         proxyAddr: contract.address,
-        data: contract.interface.encodeFunctionData(item.method, item.args),
+        data: contract.interface.encodeFunctionData(item.method as any, item.args as any),
       };
     });
   }
@@ -379,7 +379,7 @@ class Euler {
       let decodedItem; 
       try {
         decodedItem = this._batchItemToContract(item).interface.decodeFunctionResult(
-          item.method,
+          item.method as any,
           resp[i].result
         )
       } catch (e) {
