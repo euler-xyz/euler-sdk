@@ -89,7 +89,7 @@ export type NetworkConfig = {
   eulTokenConfig: TokenWithPermit;
 };
 
-export type SignerOrProvider = providers.Provider | Signer;
+export type SignerOrProvider = providers.Provider | Signer | string;
 
 export type Contracts = {
   euler: contracts.EulerContract;

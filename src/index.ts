@@ -2,7 +2,7 @@ import { ethers, ContractInterface, providers, Contract } from "ethers";
 import invariant from "tiny-invariant";
 import { abi as ERC20Abi, ERC20Contract } from "./ERC20";
 import { signPermit } from "./permits";
-import { uncapitalize, validateAddress, secondsFromNow } from "./utils";
+import { uncapitalize, validateAddress, secondsFromNow, parseError } from "./utils";
 
 import addressesMainnet from "@eulerxyz/euler-interfaces/addresses/addresses-mainnet.json";
 import addressesRopsten from "@eulerxyz/euler-interfaces/addresses/addresses-ropsten.json";
@@ -145,7 +145,7 @@ class Euler {
     this.contracts[name] = new ethers.Contract(
       address,
       abi,
-      this._signerOrProvider
+      typeof this._signerOrProvider === 'string' ? undefined : this._signerOrProvider
     );
     this.abis[name] = abi;
     this.addresses[name] = address;
@@ -194,22 +194,16 @@ class Euler {
       return {
         allowError: Boolean(item.allowError),
         proxyAddr: contract.address,
-        data: contract.interface.encodeFunctionData(item.method as any, item.args as any),
+        data: contract.interface.encodeFunctionData(
+          item.method as any,
+          item.args as any
+        ),
       };
     });
   }
 
-  async simulateBatch(
-    deferredLiquidity: string[],
-    items: BatchItem[],
-    estimateGasItems?: BatchItem[]
-  ) {
+  async simulateBatch(deferredLiquidity: string[], items: BatchItem[]) {
     invariant(Array.isArray(items), "Expecting an array of batch items");
-
-    invariant(
-      !estimateGasItems || Array.isArray(estimateGasItems),
-      "Expecting an array of batch items for gas estimations"
-    );
 
     const simulate = async () => {
       try {
@@ -224,9 +218,10 @@ class Euler {
     };
 
     const estimateGas = async () => {
+      const nonStaticItems = items.filter((i) => !i.staticCall);
       try {
         const gas = await this.contracts.exec.estimateGas.batchDispatch(
-          this.buildBatch(estimateGasItems || items),
+          this.buildBatch(nonStaticItems || items),
           deferredLiquidity
         );
         return { gas };
@@ -234,14 +229,24 @@ class Euler {
         if (e.reason) {
           for (const liquidityCheckError of LIQUIDITY_CHECK_ERRORS) {
             if (e.reason.includes(liquidityCheckError))
-              return { liquidityCheckError };
+              return {
+                error: {
+                  isLiquidityCheck: true,
+                  value: e,
+                },
+              };
           }
         }
-        throw e;
+        return {
+          error: {
+            isLiquidityCheck: false,
+            value: e,
+          },
+        };
       }
     };
 
-    const [simulation, { gas, liquidityCheckError }] = await Promise.all([
+    const [simulation, { gas, error }] = await Promise.all([
       simulate(),
       estimateGas(),
     ]);
@@ -249,7 +254,7 @@ class Euler {
     return {
       simulation,
       gas,
-      liquidityCheckError,
+      error,
     };
   }
 
@@ -348,7 +353,7 @@ class Euler {
       this._tokenCache[address] = new ethers.Contract(
         address,
         abi,
-        this._signerOrProvider
+        typeof this._signerOrProvider === 'string' ? undefined : this._signerOrProvider
       );
     }
 
@@ -376,15 +381,20 @@ class Euler {
 
     for (let i = 0; i < resp.length; i++) {
       const item = items[i];
-      let decodedItem; 
+      let decodedItem;
       try {
-        decodedItem = this._batchItemToContract(item).interface.decodeFunctionResult(
-          item.method as any,
-          resp[i].result
-        )
+        const decoded = this._batchItemToContract(
+          item
+        ).interface.decodeFunctionResult(item.method as any, resp[i].result);
+        decodedItem = {
+          success: true,
+          response: decoded,
+        };
       } catch (e) {
-        if (!item.allowError) throw e;
-        decodedItem = e;
+        decodedItem = {
+          success: false,
+          response: parseError(e),
+        };
       }
 
       decoded.push(decodedItem);
@@ -398,7 +408,7 @@ class Euler {
       new Contract(
         this.addresses[uncapitalize(name)],
         this.abis[uncapitalize(name)],
-        this._signerOrProvider
+        typeof this._signerOrProvider === 'string' ? undefined : this._signerOrProvider
       );
 
     return {
@@ -417,7 +427,7 @@ class Euler {
       eul: new Contract(
         this.eulTokenConfig.address,
         this.abis.eul,
-        this._signerOrProvider
+        typeof this._signerOrProvider === 'string' ? undefined : this._signerOrProvider
       ) as EulContract,
     };
   }

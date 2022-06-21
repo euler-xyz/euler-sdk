@@ -128,28 +128,32 @@ Because the responses from the batch are returned before the liquidity checks ar
 
 The SDK provides a helper method `simulateBatch`
 
-<b>e.simulateBatch(deferredLiquidity, simulationItems[, estimateGasItems])</b>
+<b>e.simulateBatch(deferredLiquidity, simulationItems)</b>
 ```js
 const {
   simulation,
   gas,
-  liquidityCheckError
+  error,
 } = await e.simulateBatch(
   deferredLiquidity,
   simulationItem,
-  estimateGasItems
 )
 // params:
 // `deferredLiquidity` - array of accounts to defer liquidity checks for
 // `simulationItems` - array of batch items, in the same format as `buildBatch`
-// `estimateGasItems` - optionl array of batch items used for gas estimation.
-///                     Probably excluding any helper view calls
 
 // returns:
 // `simulation` - decoded responses from functions called in a batch
 // `gas` - gas estimations if tx passes liquidity checks
-// `liquidityCheckError` - an error thrown by liquidity checks
+// `error` - if the batch reverts, contains an object:
+//   {
+//      isLiquidityCheck: true - the error was thrown by liquidity checks vs execution of batch items
+//      value: rawError
+//   }
+}
 ```
+
+Note that for gas estimation, all items with `staticCall` flag are removed. Make sure to remove them also when finally submitting the tx to `batchDispatch`.
 
 #### External static calls in batch simulations
 Internally the calls to external view functions are executed by `Exec`'s `doStaticCall` function. As long as the contract called is initialized in the SDK (or it is passed in as an instance), it is possible to define the call in a similar way to a regular batch item, setting a `staticCall` flag to `true`. The responses will be unwrapped and decoded automatically.
