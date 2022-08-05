@@ -1,28 +1,18 @@
-import { ethers, utils } from "ethers";
-import invariant from "tiny-invariant";
+import { BigNumber, utils } from "ethers";
 
-export const uncapitalize = (str: string) =>
-  str.charAt(0).toLowerCase() + str.substring(1);
+export function getSubAccountId(primaryAddress: string, subAccountAddress: string) {
+  return BigNumber.from(primaryAddress).xor(subAccountAddress).toNumber();
+}
 
-export const validateAddress = (address: string) => {
-  invariant(ethers.utils.isAddress(address), "Invalid address");
-};
+export function isRealSubAccount(primaryAddress: string, subAccountAddress: string) {
+  return BigNumber.from(primaryAddress).xor(subAccountAddress).lt(256);
+}
 
-export const secondsFromNow = (seconds: number) =>
-  Math.floor((Date.now() + seconds * 1000) / 1000);
-
-export const parseError = (e: any) => {
-  // contracts don't decode certain external revert reasons correctly (Utils.sol)
-  if (e.reason === "invalid codepoint at offset 2; missing continuation byte") {
-    try {
-      let msg = utils.defaultAbiCoder.decode(["string"], e.value.slice(4))[0];
-      e.reason = msg;
-      msg = `execution reverted: ${msg}`
-      e.message = msg;
-      e.msg = msg;
-      e.code = msg;
-    } catch {}
-  }
-
-  return e;
+export function getSubAccount(primary: string, subAccountId: number | string) {
+  if (parseInt(subAccountId as string) !== subAccountId || subAccountId > 256)
+    throw `invalid subAccountId: ${subAccountId}`
+  return utils.hexZeroPad(
+    BigNumber.from(primary).xor(subAccountId).toHexString(),
+    20,
+  )
 }

@@ -2,10 +2,18 @@ import { ethers, ContractInterface, providers, Contract } from "ethers";
 import invariant from "tiny-invariant";
 import { abi as ERC20Abi, ERC20Contract } from "./ERC20";
 import { signPermit } from "./permits";
-import { uncapitalize, validateAddress, secondsFromNow, parseError } from "./utils";
+import {
+  uncapitalize,
+  validateAddress,
+  secondsFromNow,
+  parseError,
+} from "./helpers";
+
+import * as utils from "./utils";
 
 import addressesMainnet from "@eulerxyz/euler-interfaces/addresses/addresses-mainnet.json";
 import addressesRopsten from "@eulerxyz/euler-interfaces/addresses/addresses-ropsten.json";
+import addressesGoerli from "@eulerxyz/euler-interfaces/addresses/addresses-goerli.json";
 import * as eulerAbis from "./eulerAbis";
 
 import {
@@ -17,6 +25,8 @@ import {
   SignerOrProvider,
   Contracts,
   TokenCache,
+  TokenType,
+  UnderlyingToTokenCache,
 } from "./types";
 import {
   EulContract,
@@ -35,6 +45,8 @@ import {
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
+const WETH_GOERLI = "0xa3401DFdBd584E918f59fD1C3a558467E373DacC";
+
 const DEFAULT_PERMIT_DEADLINE_SECONDS = 60 * 60;
 const LIQUIDITY_CHECK_ERRORS = [
   "e/collateral-violation",
@@ -49,7 +61,8 @@ class Euler {
   readonly eulTokenConfig: TokenWithPermit;
   readonly referenceAsset: string;
 
-  private readonly _tokenCache: TokenCache;
+  private _tokenCache: TokenCache;
+  private _underlyingToTokenCache: UnderlyingToTokenCache;
   private _signerOrProvider?: SignerOrProvider;
 
   constructor(
@@ -58,7 +71,13 @@ class Euler {
     networkConfig?: NetworkConfig
   ) {
     this.chainId = chainId;
-    this._tokenCache = {};
+    this._tokenCache = {
+      [TokenType.EToken]: {},
+      [TokenType.DToken]: {},
+      [TokenType.PToken]: {},
+      [TokenType.ERC20]: {},
+    };
+    this._underlyingToTokenCache = {};
     this._signerOrProvider = signerOrProvider;
 
     if (this.chainId === 1) {
@@ -73,6 +92,12 @@ class Euler {
       this.addresses = addresses as any;
 
       this.referenceAsset = WETH_ROPSTEN;
+    } else if (this.chainId === 420) {
+      const { eul: eulConfig, ...addresses } = addressesGoerli;
+      this.eulTokenConfig = eulConfig;
+      this.addresses = addresses as any;
+
+      this.referenceAsset = WETH_GOERLI;
     } else if (networkConfig) {
       invariant(
         networkConfig.addresses,
@@ -85,13 +110,12 @@ class Euler {
 
       this.addresses = networkConfig.addresses;
       this.referenceAsset = networkConfig.referenceAsset;
-      this.eulTokenConfig = networkConfig.eulTokenConfig;
+      this.eulTokenConfig = networkConfig.eul;
     } else {
       throw new Error("Unknown configuration");
     }
 
     this.abis = eulerAbis;
-
     this.contracts = this._loadEulerContracts();
   }
 
@@ -145,7 +169,9 @@ class Euler {
     this.contracts[name] = new ethers.Contract(
       address,
       abi,
-      typeof this._signerOrProvider === 'string' ? undefined : this._signerOrProvider
+      typeof this._signerOrProvider === "string"
+        ? undefined
+        : this._signerOrProvider
     );
     this.abis[name] = abi;
     this.addresses[name] = address;
@@ -153,22 +179,46 @@ class Euler {
 
   erc20(address: string) {
     validateAddress(address);
-    return this._getToken(address, ERC20Abi) as ERC20Contract;
+    return this._getToken(address, TokenType.ERC20) as ERC20Contract;
   }
 
   eToken(address: string) {
     validateAddress(address);
-    return this._getToken(address, this.abis.eToken) as ETokenContract;
+    return this._getToken(address, TokenType.EToken) as ETokenContract;
   }
 
   dToken(address: string) {
     validateAddress(address);
-    return this._getToken(address, this.abis.dToken) as DTokenContract;
+    return this._getToken(address, TokenType.DToken) as DTokenContract;
   }
 
   pToken(address: string) {
     validateAddress(address);
-    return this._getToken(address, this.abis.pToken) as PTokenContract;
+    return this._getToken(address, TokenType.PToken) as PTokenContract;
+  }
+
+  eTokenOf(underlyingAddress: string) {
+    validateAddress(underlyingAddress);
+    return this._getTokenOf(
+      underlyingAddress,
+      TokenType.EToken
+    ) as Promise<ETokenContract>;
+  }
+
+  dTokenOf(underlyingAddress: string) {
+    validateAddress(underlyingAddress);
+    return this._getTokenOf(
+      underlyingAddress,
+      TokenType.DToken
+    ) as Promise<DTokenContract>;
+  }
+
+  pTokenOf(underlyingAddress: string) {
+    validateAddress(underlyingAddress);
+    return this._getTokenOf(
+      underlyingAddress,
+      TokenType.PToken
+    ) as Promise<PTokenContract>;
   }
 
   buildBatch(items: BatchItem[]) {
@@ -213,7 +263,7 @@ class Euler {
         );
       } catch (e) {
         if (e.errorName !== "BatchDispatchSimulation") throw e;
-        return this._decodeBatch(items, e.errorArgs.simulation);
+        return this.decodeBatch(items, e.errorArgs.simulation);
       }
     };
 
@@ -256,6 +306,33 @@ class Euler {
       gas,
       error,
     };
+  }
+
+  decodeBatch(items: BatchItem[], resp: BatchResponse[]) {
+    const decoded: any[] = [];
+
+    for (let i = 0; i < resp.length; i++) {
+      const item = items[i];
+      let decodedItem;
+      try {
+        const decoded = this._batchItemToContract(
+          item
+        ).interface.decodeFunctionResult(item.method as any, resp[i].result);
+        decodedItem = {
+          success: true,
+          response: decoded,
+        };
+      } catch (e) {
+        decodedItem = {
+          success: false,
+          response: parseError(e),
+        };
+      }
+
+      decoded.push(decodedItem);
+    }
+
+    return decoded;
   }
 
   signPermit(
@@ -348,18 +425,51 @@ class Euler {
     return batchItem;
   }
 
-  private _getToken(address: string, abi: ContractInterface) {
-    if (!this._tokenCache[address]) {
-      this._tokenCache[address] = new ethers.Contract(
+  private _getToken(address: string, type: TokenType) {
+    if (!this._tokenCache[type][address]) {
+      this._tokenCache[type][address] = new ethers.Contract(
         address,
-        abi,
-        typeof this._signerOrProvider === 'string' ? undefined : this._signerOrProvider
+        type === TokenType.ERC20 ? ERC20Abi : this.abis[type],
+        typeof this._signerOrProvider === "string"
+          ? undefined
+          : this._signerOrProvider
       );
     }
 
     return this._signerOrProvider
-      ? this._tokenCache[address].connect(this._signerOrProvider)
-      : this._tokenCache[address];
+      ? this._tokenCache[type][address].connect(this._signerOrProvider)
+      : this._tokenCache[type][address];
+  }
+
+  private async _getTokenOf(underlyingAddress: string, type: TokenType) {
+    if (!this._underlyingToTokenCache[underlyingAddress]) {
+      this._underlyingToTokenCache[underlyingAddress] = {};
+    }
+
+    if (!this._underlyingToTokenCache[underlyingAddress][type]) {
+      let tokenAddress;
+      if (type === TokenType.EToken) {
+        tokenAddress = await this.contracts.markets.underlyingToEToken(
+          underlyingAddress
+        );
+      } else if (type === TokenType.DToken) {
+        tokenAddress = await this.contracts.markets.underlyingToDToken(
+          underlyingAddress
+        );
+      } else if (type === TokenType.PToken) {
+        tokenAddress = await this.contracts.markets.underlyingToPToken(
+          underlyingAddress
+        );
+      } else {
+        throw new Error(`Unsupported token type: ${type}`);
+      }
+      if (tokenAddress === ethers.constants.AddressZero)
+        throw new Error(`No ${type} found for underlying ${underlyingAddress}`);
+
+      this._underlyingToTokenCache[underlyingAddress][type] = tokenAddress;
+    }
+
+    return this[type](this._underlyingToTokenCache[underlyingAddress][type]);
   }
 
   private _batchItemToContract(item: BatchItem) {
@@ -367,40 +477,13 @@ class Euler {
     if (this.contracts[item.contract]) return this.contracts[item.contract];
 
     if (item.address) {
-      if (item.contract === "eToken") return this.eToken(item.address);
-      if (item.contract === "dToken") return this.dToken(item.address);
-      if (item.contract === "pToken") return this.pToken(item.address);
-      if (item.contract === "erc20") return this.erc20(item.address);
+      if (item.contract === TokenType.EToken) return this.eToken(item.address);
+      if (item.contract === TokenType.DToken) return this.dToken(item.address);
+      if (item.contract === TokenType.PToken) return this.pToken(item.address);
+      if (item.contract === TokenType.ERC20) return this.erc20(item.address);
     }
 
     throw new Error(`Unknown contract ${item.contract}`);
-  }
-
-  private _decodeBatch(items: BatchItem[], resp: BatchResponse[]) {
-    const decoded: any[] = [];
-
-    for (let i = 0; i < resp.length; i++) {
-      const item = items[i];
-      let decodedItem;
-      try {
-        const decoded = this._batchItemToContract(
-          item
-        ).interface.decodeFunctionResult(item.method as any, resp[i].result);
-        decodedItem = {
-          success: true,
-          response: decoded,
-        };
-      } catch (e) {
-        decodedItem = {
-          success: false,
-          response: parseError(e),
-        };
-      }
-
-      decoded.push(decodedItem);
-    }
-
-    return decoded;
   }
 
   private _loadEulerContracts(): Contracts {
@@ -408,7 +491,9 @@ class Euler {
       new Contract(
         this.addresses[uncapitalize(name)],
         this.abis[uncapitalize(name)],
-        typeof this._signerOrProvider === 'string' ? undefined : this._signerOrProvider
+        typeof this._signerOrProvider === "string"
+          ? undefined
+          : this._signerOrProvider
       );
 
     return {
@@ -427,10 +512,12 @@ class Euler {
       eul: new Contract(
         this.eulTokenConfig.address,
         this.abis.eul,
-        typeof this._signerOrProvider === 'string' ? undefined : this._signerOrProvider
+        typeof this._signerOrProvider === "string"
+          ? undefined
+          : this._signerOrProvider
       ) as EulContract,
     };
   }
 }
 
-export { Euler };
+export { Euler, utils };

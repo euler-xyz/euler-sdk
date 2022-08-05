@@ -1,6 +1,6 @@
 # Euler-sdk
 
-A basic SDK for interacting with [Euler smart contracts](https://github.com/euler-xyz/euler-contracts).
+A basic SDK for interacting with [Euler smart contracts](https://github.com/euler-xyz/euler-contracts) in browsers and Node.js applications.
 Currently this is an alpha software, under intensive development.
 
 ## Installation
@@ -9,7 +9,7 @@ npm i @eulerxyz/euler-sdk
 ```
 
 ## Euler class
-The package provides a single named export - the Euler class
+The `Euler` class provides methods for interacting with the Euler protocol.
 ```js
 import { Euler } from "@eulerxyz/euler-sdk"
 ```
@@ -52,16 +52,22 @@ const balance = await e.contracts.eul.balanceOf(myAccount)
 ```
 
 ### eTokens, dTokens, pTokens
-Contracts that exist for every activated market can be instantiated and accessed by helper methods `eToken(address)`, `dToken(address)`, `pToken(address)`
+Supply and debt tokens (eToken and dTokens) as well as protected collateral tokens (pTokens) can be instantiated and accessed by helper methods `eToken(address)`, `dToken(address)`, `pToken(address)`
 
 ```js
 const eUsdcAddress = await e.contracts.markets.underlyingToEToken(USDC_ADDRESS)
-await e.eToken(eUsdcAddress).deposit(0, 1000000000)
+await e.eToken(eUsdcAddress).deposit(0, 1M_USDC)
 ```
 
 In addition to that there is also `erc20(address)` for constructing standard ERC20 contract instances
 ```js
 const daiBalance = await e.erc20(DAI_ADDRESS).balanceOf(myAccount)
+```
+
+Additional helper methods `eTokenOf(address)`, `dTokenOf(address)`, `pTokenOf(address)` take the underlying address and return a promise for the related Euler token instance. The first snippet in this section can be simplified to:
+
+```js
+await (await e.eTokenOf(USDC_ADDRESS)).deposit(0, 1M_USDC)
 ```
 
 ### Adding external contracts
@@ -114,9 +120,10 @@ Note that for singleton contracts, the `address` can be omitted. The `contract` 
 ]
 ```
 
-The encoded payload can be used to execute the `batchDispatch` transaction.
+The encoded payload can be used to execute the `batchDispatch` transaction. The results returned by batch functions can be decoded with `decodeBatch`
 ```js
-await e.contracts.exec.callStatic.batchDispatch(e.buildBatch(batchItems), [])
+const rawResults = await e.contracts.exec.callStatic.batchDispatch(e.buildBatch(batchItems), [])
+const batchResults = e.decodeBatch(batchItems, rawResults)
 ```
 
 #### Batch simulations
@@ -153,10 +160,10 @@ const {
 }
 ```
 
-Note that for gas estimation, all items with `staticCall` flag are removed. Make sure to remove them also when finally submitting the tx to `batchDispatch`.
-
 #### External static calls in batch simulations
 Internally the calls to external view functions are executed by `Exec`'s `doStaticCall` function. As long as the contract called is initialized in the SDK (or it is passed in as an instance), it is possible to define the call in a similar way to a regular batch item, setting a `staticCall` flag to `true`. The responses will be unwrapped and decoded automatically.
+
+Note that for gas estimation in batch simulation, all items with `staticCall` flag are removed. Make sure to remove them also when finally submitting the tx to `batchDispatch`. If for any reason, a view function should be a part of the transaction and needs to be included in gas estimation, the item should be encoded as a call to `doStaticCall` directly.
 
 ```js
 const e = new Euler(signer)
@@ -212,3 +219,24 @@ e.connect(newSigner)
 
 const currentSigner = e.getSigner()
 ```
+
+## Utilities
+
+Some useful utilities are provided in the `utils` export of the package. The list will be extended in the future.
+```js
+import { utils } from "@eulerxyz/euler-sdk" 
+```
+
+### Accounts
+
+`utils.accounts.getSubAccountId(primaryAddress: string, subAccountAddress: string)`  
+Returns an ID of the sub-account given two addresses.
+
+`utils.accounts.isRealSubAccount(primaryAddress: string, subAccountAddress: string)`  
+Returns `true` if the second address provided is a sub-account of the first.
+
+`utils.accounts.getSubAccount(primary: string, subAccountId: number | string)`  
+Returns the sub-account address given primary address and a sub-account ID.
+
+
+

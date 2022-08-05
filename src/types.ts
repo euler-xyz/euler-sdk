@@ -86,7 +86,7 @@ export type EulerABIs = {
 export type NetworkConfig = {
   addresses: EulerAddresses;
   referenceAsset: string;
-  eulTokenConfig: TokenWithPermit;
+  eul: TokenWithPermit;
 };
 
 export type SignerOrProvider = providers.Provider | Signer | string;
@@ -104,11 +104,42 @@ export type Contracts = {
   [contractName: string]: Contract;
 };
 
+
+// export type TokenCache = {
+//   'erc20': {
+//     [address: string]: Contract | ERC20Contract
+//   },
+//   'eToken': {
+//     [address: string]: Contract | contracts.ETokenContract
+//   },
+//   'dToken': {
+//     [address: string]: Contract | contracts.DTokenContract
+//   },
+//   'pToken': {
+//     [address: string]: Contract | contracts.PTokenContract
+//   }
+// };
+
+export enum TokenType {
+  ERC20 = "erc20",
+  EToken = "eToken",
+  DToken = "dToken",
+  PToken = "pToken"
+}
+
 export type TokenCache = {
-  [address: string]:
-    | Contract
-    | contracts.ETokenContract
-    | contracts.DTokenContract
-    | contracts.PTokenContract
-    | ERC20Contract;
+  [type: string]: {
+    [address: string]: 
+      Contract
+      | ERC20Contract
+      | contracts.ETokenContract
+      | contracts.DTokenContract
+      | contracts.PTokenContract
+  }
+};
+
+export type UnderlyingToTokenCache = {
+  [underlying: string]: {
+    [type: string]: string
+  }
 };
