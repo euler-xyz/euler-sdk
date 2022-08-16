@@ -229,13 +229,13 @@ import { utils } from "@eulerxyz/euler-sdk"
 
 ### Accounts
 
-`utils.accounts.getSubAccountId(primaryAddress: string, subAccountAddress: string)`  
+`utils.getSubAccountId(primaryAddress: string, subAccountAddress: string)`  
 Returns an ID of the sub-account given two addresses.
 
-`utils.accounts.isRealSubAccount(primaryAddress: string, subAccountAddress: string)`  
+`utils.isRealSubAccount(primaryAddress: string, subAccountAddress: string)`  
 Returns `true` if the second address provided is a sub-account of the first.
 
-`utils.accounts.getSubAccount(primary: string, subAccountId: number | string)`  
+`utils.getSubAccount(primary: string, subAccountId: number | string)`  
 Returns the sub-account address given primary address and a sub-account ID.
 
 
