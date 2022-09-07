@@ -92,7 +92,7 @@ class Euler {
       this.addresses = addresses as any;
 
       this.referenceAsset = WETH_ROPSTEN;
-    } else if (this.chainId === 420) {
+    } else if (this.chainId === 5) {
       const { eul: eulConfig, ...addresses } = addressesGoerli;
       this.eulTokenConfig = eulConfig;
       this.addresses = addresses as any;
