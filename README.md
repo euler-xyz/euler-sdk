@@ -89,6 +89,9 @@ The token configuration like decimals, logo, permit data are provided in `eulTok
 const { logo, extensions: { permit: { domain } } } = e.eulerTokenConfig
 ```
 
+### Reference asset
+In Euler the reference asset, against which all prices are expressed is WETH. `referenceAsset` property holds the address of WETH for the selected chain.
+
 ### Batch transactions
 
 Euler platform supports batching user operations into a single gas efficient transaction. SDK provides a helper method `buildBatch` to make use of this feature.
@@ -177,14 +180,13 @@ const items = [
     args: [0, 1M_USDC]
   },
   {
-    staticCall: true,
     contract: "eulerGeneralView",
     method: "doQuery"
-    args: {
+    args: [{
       eulerContract: e.contracts.euler.address,
       account: MY_ACCOUNT
       markets: [USDC_ADDRESS]
-    }
+    }]
   }
 ]
 
@@ -200,7 +202,7 @@ To use EIP2612 permits on Euler, SDK provides `signPermit` and `signPermitBatchI
 const batch = [
   await e.signPermitBatchItem(token),
   {
-    contract: e.eToken(token.address),
+    contract: await e.eTokenOf(token.address),
     method: "deposit",
     args: [0, 10000000]
   }
