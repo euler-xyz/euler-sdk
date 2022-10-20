@@ -16,8 +16,8 @@ import { Euler } from "@eulerxyz/euler-sdk"
 
 The constructor arguments are all optional:
 - `signerOrProvider` Ethers Signer or Provider instance. 
-- `chainId` Currently the SDK contains built in configurations for mainnet (chainId = 1), which is also default, and ropsten (chainId = 3) deployments.
-- `networkConfig` Required when chainId is not 1 or 3. Object containing euler contract addresses, reference asset address and EUL token config. 
+- `chainId` Currently the SDK contains built in configurations for mainnet (chainId = 1), which is also default, Ropsten (chainId = 3) and Görli (chainId = 5) deployments.
+- `networkConfig` Required when chainId is not 1, 3 or 5. Object containing euler contract addresses, reference asset address and EUL token config. 
 
 ```js
 const provider = new ethers.providers.JsonRpcProvider("<JSON_RPC_URL>")
@@ -34,6 +34,8 @@ By default, the SDK provides instances of the [ethers.Contract](https://docs.eth
 - mining contracts `EulStakes` and `EulDistributor`
 - peripheries `FlashLoan` and `EulerGeneralView`
 - native governance token `EUL`
+
+Available on `e.contracs` property.
 
 ```js
 // activate a new market
@@ -123,10 +125,9 @@ Note that for singleton contracts, the `address` can be omitted. The `contract` 
 ]
 ```
 
-The encoded payload can be used to execute the `batchDispatch` transaction. The results returned by batch functions can be decoded with `decodeBatch`
+Finally to send a batch transaction:
 ```js
-const rawResults = await e.contracts.exec.callStatic.batchDispatch(e.buildBatch(batchItems), [])
-const batchResults = e.decodeBatch(batchItems, rawResults)
+const tx = await e.contracts.exec.callStatic.batchDispatch(e.buildBatch(batchItems), [])
 ```
 
 #### Batch simulations
@@ -180,6 +181,7 @@ const items = [
     args: [0, 1M_USDC]
   },
   {
+    staticCall: true,
     contract: "eulerGeneralView",
     method: "doQuery"
     args: [{
