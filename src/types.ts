@@ -60,6 +60,9 @@ export type EulerAddresses = {
   liquidation: string;
   markets: string;
   swap: string;
+  swapHub: string;
+  swapHandler1Inch: string;
+  swapHandlerUniAutoRouter: string;
   eulStakes: string;
   eulDistributor: string;
   eulerGeneralView: string;
@@ -73,6 +76,7 @@ export type EulerABIs = {
   liquidation: ContractInterface;
   markets: ContractInterface;
   swap: ContractInterface;
+  swapHub: ContractInterface;
   eulStakes: ContractInterface;
   eulDistributor: ContractInterface;
   eulerGeneralView: ContractInterface;
@@ -97,28 +101,13 @@ export type Contracts = {
   liquidation: contracts.LiquidationContract;
   markets: contracts.MarketsContract;
   swap: contracts.SwapContract;
+  swapHub: contracts.SwapHubContract;
   eulStakes: contracts.EulStakesContract;
   eulDistributor: contracts.EulDistributorContract;
   eulerGeneralView: contracts.EulerGeneralViewContract;
   eul: contracts.EulContract;
   [contractName: string]: Contract;
 };
-
-
-// export type TokenCache = {
-//   'erc20': {
-//     [address: string]: Contract | ERC20Contract
-//   },
-//   'eToken': {
-//     [address: string]: Contract | contracts.ETokenContract
-//   },
-//   'dToken': {
-//     [address: string]: Contract | contracts.DTokenContract
-//   },
-//   'pToken': {
-//     [address: string]: Contract | contracts.PTokenContract
-//   }
-// };
 
 export enum TokenType {
   ERC20 = "erc20",

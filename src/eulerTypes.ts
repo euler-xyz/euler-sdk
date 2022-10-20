@@ -8,6 +8,7 @@ export {
   Liquidation as LiquidationContract,
   Markets as MarketsContract,
   Swap as SwapContract,
+  SwapHub as SwapHubContract,
   EulStakes as EulStakesContract,
   EulDistributor as EulDistributorContract,
   EulerGeneralView as EulerGeneralViewContract,

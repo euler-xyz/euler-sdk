@@ -1,4 +1,4 @@
-import { ethers, ContractInterface, providers, Contract } from "ethers";
+import { ethers, ContractInterface, providers, Contract, constants } from "ethers";
 import invariant from "tiny-invariant";
 import { abi as ERC20Abi, ERC20Contract } from "./ERC20";
 import { signPermit } from "./permits";
@@ -38,6 +38,7 @@ import {
   LiquidationContract,
   MarketsContract,
   SwapContract,
+  SwapHubContract,
   EulStakesContract,
   EulDistributorContract,
   EulerGeneralViewContract,
@@ -80,7 +81,20 @@ class Euler {
     this._underlyingToTokenCache = {};
     this._signerOrProvider = signerOrProvider;
 
-    if (this.chainId === 1) {
+    if (networkConfig) {
+      invariant(
+        networkConfig.addresses,
+        `Missing addresses for chainId ${this.chainId}`
+      );
+      invariant(
+        networkConfig.referenceAsset,
+        `Missing reference asset for chainId ${this.chainId}`
+      );
+
+      this.addresses = networkConfig.addresses;
+      this.referenceAsset = networkConfig.referenceAsset;
+      this.eulTokenConfig = networkConfig.eul;
+    } else if (this.chainId === 1) {
       const { eul: eulConfig, ...addresses } = addressesMainnet;
       this.eulTokenConfig = eulConfig;
       this.addresses = addresses as any;
@@ -98,19 +112,6 @@ class Euler {
       this.addresses = addresses as any;
 
       this.referenceAsset = WETH_GOERLI;
-    } else if (networkConfig) {
-      invariant(
-        networkConfig.addresses,
-        `Missing addresses for chainId ${this.chainId}`
-      );
-      invariant(
-        networkConfig.referenceAsset,
-        `Missing reference asset for chainId ${this.chainId}`
-      );
-
-      this.addresses = networkConfig.addresses;
-      this.referenceAsset = networkConfig.referenceAsset;
-      this.eulTokenConfig = networkConfig.eul;
     } else {
       throw new Error("Unknown configuration");
     }
@@ -319,7 +320,7 @@ class Euler {
           item
         ).interface.decodeFunctionResult(item.method as any, resp[i].result);
         decodedItem = {
-          success: true,
+          success: resp[i].success,
           response: decoded,
         };
       } catch (e) {
@@ -489,7 +490,7 @@ class Euler {
   private _loadEulerContracts(): Contracts {
     const createContract = (name: string) =>
       new Contract(
-        this.addresses[uncapitalize(name)],
+        this.addresses[uncapitalize(name)] || constants.AddressZero,
         this.abis[uncapitalize(name)],
         typeof this._signerOrProvider === "string"
           ? undefined
@@ -502,6 +503,7 @@ class Euler {
       liquidation: createContract("Liquidation") as LiquidationContract,
       markets: createContract("Markets") as MarketsContract,
       swap: createContract("Swap") as SwapContract,
+      swapHub: createContract("SwapHub") as SwapHubContract,
       eulStakes: createContract("EulStakes") as EulStakesContract,
       eulDistributor: createContract(
         "EulDistributor"
