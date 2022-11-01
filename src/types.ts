@@ -95,7 +95,7 @@ export type NetworkConfig = {
 
 export type SignerOrProvider = providers.Provider | Signer | string;
 
-export type Contracts = {
+export interface Contracts {
   euler: contracts.EulerContract;
   exec: contracts.ExecContract;
   liquidation: contracts.LiquidationContract;
