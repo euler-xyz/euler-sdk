@@ -169,6 +169,8 @@ Internally the calls to external view functions are executed by `Exec`'s `doStat
 
 Note that for gas estimation in batch simulation, all items with `staticCall` flag are removed. Make sure to remove them also when finally submitting the tx to `batchDispatch`. If for any reason, a view function should be a part of the transaction and needs to be included in gas estimation, the item should be encoded as a call to `doStaticCall` directly.
 
+If the simulated batch only includes items with `staticCall` flag, then gas estimation is skipped altogether, and the simulation effectively behaves as a multicall for arbitrary `view` functions.
+
 ```js
 const e = new Euler(signer)
 e.addContract("EulerGeneralView")
