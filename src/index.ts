@@ -270,6 +270,8 @@ class Euler {
 
     const estimateGas = async () => {
       const nonStaticItems = items.filter((i) => !i.staticCall);
+      if (nonStaticItems.length === 0) return {};
+
       try {
         const gas = await this.contracts.exec.estimateGas.batchDispatch(
           this.buildBatch(nonStaticItems || items),
