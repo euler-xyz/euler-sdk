@@ -148,10 +148,14 @@ const {
 } = await e.simulateBatch(
   deferredLiquidity,
   simulationItem,
+  opts,
+  callOverrides,
 )
 // params:
 // `deferredLiquidity` - array of accounts to defer liquidity checks for
 // `simulationItems` - array of batch items, in the same format as `buildBatch`
+// `opts` - options object, currently only supporting `skipEstimateGas` flag. Optional
+// `callOverrides` - ethers standard `CallOverrides` object.
 
 // returns:
 // `simulation` - decoded responses from functions called in a batch
@@ -168,8 +172,6 @@ const {
 Internally the calls to external view functions are executed by `Exec`'s `doStaticCall` function. As long as the contract called is initialized in the SDK (or it is passed in as an instance), it is possible to define the call in a similar way to a regular batch item, setting a `staticCall` flag to `true`. The responses will be unwrapped and decoded automatically.
 
 Note that for gas estimation in batch simulation, all items with `staticCall` flag are removed. Make sure to remove them also when finally submitting the tx to `batchDispatch`. If for any reason, a view function should be a part of the transaction and needs to be included in gas estimation, the item should be encoded as a call to `doStaticCall` directly.
-
-If the simulated batch only includes items with `staticCall` flag, then gas estimation is skipped altogether, and the simulation effectively behaves as a multicall for arbitrary `view` functions.
 
 ```js
 const e = new Euler(signer)
@@ -197,6 +199,11 @@ const items = [
 const { simulation } = await e.simulateBatch([MY_ACCOUNT], items)
 // simulation[1] contains results from the lens call after the deposit is processed
 ```
+
+#### Using batch simulation as a multicall
+The simulation by default makes two calls to the chain: `staticCall` to get the simulation results and `estimateGas` to get gas costs. If the purpose of the simulation is only to fetch some onchain data, the gas estimation is not necessary. A flag in options object `skipEstimateGas` can be used to disable it. It will also be disabled when all the batch items have `staticCall` flag set (calling external view functions).
+
+In summary, the batch simulation can be made to effectively behave as a multicall for arbitrary `view` functions.
 
 ### Signing and using permits
 

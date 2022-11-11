@@ -132,3 +132,7 @@ export type UnderlyingToTokenCache = {
     [type: string]: string
   }
 };
+
+export type SimulateBatchOpts = {
+  skipEstimateGas?: boolean;
+};

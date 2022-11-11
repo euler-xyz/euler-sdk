@@ -1,4 +1,4 @@
-import { ethers, ContractInterface, providers, Contract, constants } from "ethers";
+import { ethers, ContractInterface, providers, Contract, constants, CallOverrides } from "ethers";
 import invariant from "tiny-invariant";
 import { abi as ERC20Abi, ERC20Contract } from "./ERC20";
 import { signPermit } from "./permits";
@@ -27,6 +27,7 @@ import {
   TokenCache,
   TokenType,
   UnderlyingToTokenCache,
+  SimulateBatchOpts,
 } from "./types";
 import {
   EulContract,
@@ -253,14 +254,15 @@ class Euler {
     });
   }
 
-  async simulateBatch(deferredLiquidity: string[], items: BatchItem[]) {
+  async simulateBatch(deferredLiquidity: string[], items: BatchItem[], opts?: SimulateBatchOpts, overrides?: CallOverrides) {
     invariant(Array.isArray(items), "Expecting an array of batch items");
 
     const simulate = async () => {
       try {
         await this.contracts.exec.callStatic.batchDispatchSimulate(
           this.buildBatch(items),
-          deferredLiquidity
+          deferredLiquidity,
+          overrides,
         );
       } catch (e) {
         if (e.errorName !== "BatchDispatchSimulation") throw e;
@@ -270,12 +272,13 @@ class Euler {
 
     const estimateGas = async () => {
       const nonStaticItems = items.filter((i) => !i.staticCall);
-      if (nonStaticItems.length === 0) return {};
+      if (nonStaticItems.length === 0 || opts?.skipEstimateGas) return {};
 
       try {
         const gas = await this.contracts.exec.estimateGas.batchDispatch(
           this.buildBatch(nonStaticItems || items),
-          deferredLiquidity
+          deferredLiquidity,
+          overrides,
         );
         return { gas };
       } catch (e) {
