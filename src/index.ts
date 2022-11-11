@@ -254,7 +254,7 @@ class Euler {
     });
   }
 
-  async simulateBatch(deferredLiquidity: string[], items: BatchItem[], opts?: SimulateBatchOpts, overrides?: CallOverrides) {
+  async simulateBatch(deferredLiquidity: string[], items: BatchItem[], opts: SimulateBatchOpts = {}, overrides: CallOverrides = {}) {
     invariant(Array.isArray(items), "Expecting an array of batch items");
 
     const simulate = async () => {
