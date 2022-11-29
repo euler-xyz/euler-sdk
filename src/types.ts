@@ -63,6 +63,7 @@ export type EulerAddresses = {
   swapHub: string;
   swapHandler1Inch: string;
   swapHandlerUniAutoRouter: string;
+  swapHandlerUniswapV3: string;
   eulStakes: string;
   eulDistributor: string;
   eulerGeneralView: string;
