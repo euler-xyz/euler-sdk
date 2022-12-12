@@ -1,4 +1,4 @@
-export { 
+export type {
   Eul as EulContract,
   Euler as EulerContract,
   PToken as PTokenContract,
