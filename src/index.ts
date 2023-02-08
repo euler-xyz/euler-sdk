@@ -28,6 +28,7 @@ import {
   TokenType,
   UnderlyingToTokenCache,
   SimulateBatchOpts,
+  StakingConfig,
 } from "./types";
 import {
   EulContract,
@@ -45,15 +46,23 @@ import {
   EulerGeneralViewContract,
 } from "./eulerTypes";
 
-const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
-const WETH_GOERLI = "0xa3401DFdBd584E918f59fD1C3a558467E373DacC";
-
 const DEFAULT_PERMIT_DEADLINE_SECONDS = 60 * 60;
 const LIQUIDITY_CHECK_ERRORS = [
   "e/collateral-violation",
   "e/borrow-isolation-violation",
 ];
+
+const EULER_ADDRESSES: { [key: number]: any } = {
+  1: addressesMainnet,
+  3: addressesRopsten,
+  5: addressesGoerli,
+}
+
+const REFERENCE_ASSET: { [key: number]: string } = {
+  1: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+  3: "0xc778417e063141139fce010982780140aa0cd5ab",
+  5: "0xa3401DFdBd584E918f59fD1C3a558467E373DacC",
+}
 
 class Euler {
   readonly chainId: number;
@@ -61,9 +70,11 @@ class Euler {
   readonly abis: { [contractName: string]: ContractInterface };
   readonly addresses: EulerAddresses;
   readonly eulTokenConfig: TokenWithPermit;
+  readonly stakingConfig?: StakingConfig;
   readonly referenceAsset: string;
 
   private _tokenCache: TokenCache;
+  private _contractCache: { [key: string]: Contract } = {};
   private _underlyingToTokenCache: UnderlyingToTokenCache;
   private _signerOrProvider?: SignerOrProvider;
 
@@ -79,6 +90,7 @@ class Euler {
       [TokenType.PToken]: {},
       [TokenType.ERC20]: {},
     };
+    this._contractCache = {};
     this._underlyingToTokenCache = {};
     this._signerOrProvider = signerOrProvider;
 
@@ -95,26 +107,31 @@ class Euler {
       this.addresses = networkConfig.addresses;
       this.referenceAsset = networkConfig.referenceAsset;
       this.eulTokenConfig = networkConfig.eul;
-    } else if (this.chainId === 1) {
-      const { eul: eulConfig, ...addresses } = addressesMainnet;
-      this.eulTokenConfig = eulConfig;
-      this.addresses = addresses as any;
-
-      this.referenceAsset = WETH_MAINNET;
-    } else if (this.chainId === 3) {
-      const { eul: eulConfig, ...addresses } = addressesRopsten;
-      this.eulTokenConfig = eulConfig;
-      this.addresses = addresses as any;
-
-      this.referenceAsset = WETH_ROPSTEN;
-    } else if (this.chainId === 5) {
-      const { eul: eulConfig, ...addresses } = addressesGoerli;
-      this.eulTokenConfig = eulConfig;
-      this.addresses = addresses as any;
-
-      this.referenceAsset = WETH_GOERLI;
+      this.stakingConfig = networkConfig.staking;
     } else {
-      throw new Error("Unknown configuration");
+      if (!EULER_ADDRESSES[this.chainId]) {
+        throw new Error("Unknown configuration");
+      }
+
+      const { 
+        eul: eulConfig, 
+        staking: stakingConfig, 
+        ...addresses 
+      } = EULER_ADDRESSES[this.chainId];
+
+      this.eulTokenConfig = eulConfig;
+      this.stakingConfig = stakingConfig;
+      this.addresses = addresses as any;
+      this.referenceAsset = REFERENCE_ASSET[this.chainId];
+    }
+
+    // make sure all addresses are lowercase
+    if (this.stakingConfig?.stakingRewards) {
+      this.stakingConfig.stakingRewards = Object.keys(this.stakingConfig.stakingRewards)
+        .reduce((acc: { [key: string]: string }, key: string) => ({
+          ...acc,
+          [key.toLowerCase()]: (this.stakingConfig?.stakingRewards?.[key] || "").toLowerCase(),
+      }), {});
     }
 
     this.abis = eulerAbis;
@@ -197,6 +214,13 @@ class Euler {
   pToken(address: string) {
     validateAddress(address);
     return this._getToken(address, TokenType.PToken) as PTokenContract;
+  }
+
+  stakingRewards(eTokenAddress: string) {
+    const address = this.stakingConfig?.stakingRewards?.[eTokenAddress] || "";
+    validateAddress(eTokenAddress);
+    validateAddress(address);
+    return this._getContract(address, this.abis.stakingRewards) as Contract;
   }
 
   eTokenOf(underlyingAddress: string) {
@@ -478,6 +502,22 @@ class Euler {
     return this[type](this._underlyingToTokenCache[underlyingAddress][type]);
   }
 
+  private _getContract(address: string, abi: ethers.ContractInterface) {
+    if (!this._contractCache[address]) {
+      this._contractCache[address] = new ethers.Contract(
+        address,
+        abi,
+        typeof this._signerOrProvider === "string"
+          ? undefined
+          : this._signerOrProvider
+      );
+    }
+
+    return this._signerOrProvider
+      ? this._contractCache[address].connect(this._signerOrProvider)
+      : this._contractCache[address];
+  }
+
   private _batchItemToContract(item: BatchItem) {
     if (item.contract instanceof ethers.Contract) return item.contract;
     if (this.contracts[item.contract]) return this.contracts[item.contract];
@@ -523,6 +563,15 @@ class Euler {
           ? undefined
           : this._signerOrProvider
       ) as EulContract,
+      ...this.stakingConfig?.rewardsDistribution && {
+        rewardsDistribution: new Contract(
+          this.stakingConfig.rewardsDistribution,
+          this.abis.rewardsDistribution,
+          typeof this._signerOrProvider === "string"
+          ? undefined
+          : this._signerOrProvider
+        ) as Contract,
+      },
     };
   }
 }
