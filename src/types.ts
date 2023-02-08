@@ -71,6 +71,11 @@ export type EulerAddresses = {
   [contractName: string]: string;
 };
 
+export type StakingConfig = {
+  rewardsDistribution?: string;
+  stakingRewards?: {[key: string]: string};
+}
+
 export type EulerABIs = {
   euler: ContractInterface;
   exec: ContractInterface;
@@ -92,6 +97,7 @@ export type NetworkConfig = {
   addresses: EulerAddresses;
   referenceAsset: string;
   eul: TokenWithPermit;
+  staking?: StakingConfig;
 };
 
 export type SignerOrProvider = providers.Provider | Signer | string;

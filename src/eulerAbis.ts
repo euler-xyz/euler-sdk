@@ -11,6 +11,8 @@ import swapHubJson from "@eulerxyz/euler-interfaces/abis/modules/SwapHub.json";
 import eulStakesJson from "@eulerxyz/euler-interfaces/abis/mining/EulStakes.json";
 import eulDistributorJson from "@eulerxyz/euler-interfaces/abis/mining/EulDistributor.json";
 import eulerGeneralViewJson from "@eulerxyz/euler-interfaces/abis/views/EulerGeneralView.json";
+import rewardsDistributionJson from "@eulerxyz/euler-interfaces/abis/staking/RewardsDistribution.json";
+import stakingRewardsJson from "@eulerxyz/euler-interfaces/abis/staking/StakingRewards.json";
 
 export const eul = eulJson.abi;
 export const euler = eulerJson.abi;
@@ -25,3 +27,5 @@ export const swapHub = swapHubJson.abi;
 export const eulStakes = eulStakesJson.abi;
 export const eulDistributor = eulDistributorJson.abi;
 export const eulerGeneralView = eulerGeneralViewJson.abi;
+export const rewardsDistribution = rewardsDistributionJson.abi;
+export const stakingRewards = stakingRewardsJson.abi;
