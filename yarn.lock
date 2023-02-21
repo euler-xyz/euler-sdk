@@ -1320,10 +1320,10 @@
     "@ethersproject/properties" "^5.6.0"
     "@ethersproject/strings" "^5.6.1"
 
-"@eulerxyz/euler-interfaces@1.1.3":
-  version "1.1.3"
-  resolved "https://registry.npmjs.org/@eulerxyz/euler-interfaces/-/euler-interfaces-1.1.3.tgz"
-  integrity sha512-VLAWTTzHd3snNCl0zUroO34BkxbZwszpSTJksMSidUzIiEke2nUj4sxNwJS5WQL2mYT2PAlCZFY0Oy7Yvhzwvw==
+"@eulerxyz/euler-interfaces@1.1.4":
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/@eulerxyz/euler-interfaces/-/euler-interfaces-1.1.4.tgz#b24587642d7e6a2b413fdee855d13adedc1c4d92"
+  integrity sha512-D1GZ+ZogRVunRpa9qZbXID3yc1YdDaNlnZr5vSXVI3c6BjAnZ5DJSMQIXE1tCHDHweJQkQyKjYEKftmtvqGMTg==
 
 "@jridgewell/gen-mapping@^0.1.0":
   version "0.1.1"
