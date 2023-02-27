@@ -17,7 +17,7 @@ import { Euler } from "@eulerxyz/euler-sdk"
 The constructor arguments are all optional:
 - `signerOrProvider` Ethers Signer or Provider instance. 
 - `chainId` Currently the SDK contains built in configurations for mainnet (chainId = 1), which is also default, Ropsten (chainId = 3), Görli (chainId = 5) and (chainId = 97) Binance Testnet deployments.
-- `networkConfig` Required when chainId is not 1, 3 or 5, 97. Object containing euler contract addresses, reference asset address and EUL token config. 
+- `networkConfig` Required when chainId is not 1, 3, 5 or 97. Object containing euler contract addresses, reference asset address and EUL token config. 
 
 ```js
 const provider = new ethers.providers.JsonRpcProvider("<JSON_RPC_URL>")
