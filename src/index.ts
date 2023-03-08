@@ -15,6 +15,7 @@ import addressesMainnet from "@eulerxyz/euler-interfaces/addresses/addresses-mai
 import addressesRopsten from "@eulerxyz/euler-interfaces/addresses/addresses-ropsten.json";
 import addressesGoerli from "@eulerxyz/euler-interfaces/addresses/addresses-goerli.json";
 import addressesTBnb from "@eulerxyz/euler-interfaces/addresses/addresses-tbnb.json";
+import addressesBaseGorli from "@eulerxyz/euler-interfaces/addresses/addresses-basetestnet.json";
 import * as eulerAbis from "./eulerAbis";
 
 import {
@@ -50,6 +51,7 @@ const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_ROPSTEN = "0xc778417e063141139fce010982780140aa0cd5ab";
 const WETH_GOERLI = "0xa3401DFdBd584E918f59fD1C3a558467E373DacC";
 const WETH_TBNB = "0x594a6993bB7A533132D65001a7C99fC66Fae38F4";
+const WETH_BASETESTNET = "0xe392ee380a9917d08b521e9488a66c83364678d2";
 
 const DEFAULT_PERMIT_DEADLINE_SECONDS = 60 * 60;
 const LIQUIDITY_CHECK_ERRORS = [
@@ -122,6 +124,13 @@ class Euler {
       this.addresses = addresses as any;
 
       this.referenceAsset = WETH_TBNB;
+    }
+    else if(this.chainId === 97) {
+      const {eul: eulConfig, ...addresses} = addressesBaseGorli;
+      this.eulTokenConfig = eulConfig;
+      this.addresses = addresses as any;
+
+      this.referenceAsset = WETH_BASETESTNET;
     } else {
       throw new Error("Unknown configuration");
     }
