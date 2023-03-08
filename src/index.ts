@@ -125,7 +125,7 @@ class Euler {
 
       this.referenceAsset = WETH_TBNB;
     }
-    else if(this.chainId === 97) {
+    else if(this.chainId === 84531) {
       const {eul: eulConfig, ...addresses} = addressesBaseGorli;
       this.eulTokenConfig = eulConfig;
       this.addresses = addresses as any;
