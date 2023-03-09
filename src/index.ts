@@ -44,7 +44,7 @@ import {
   SwapHubContract,
   EulStakesContract,
   EulDistributorContract,
-  EulerGeneralViewContract,
+  EulerLensV1Contract,
 } from "./eulerTypes";
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
@@ -531,9 +531,9 @@ class Euler {
       eulDistributor: createContract(
         "EulDistributor"
       ) as EulDistributorContract,
-      eulerGeneralView: createContract(
-        "EulerGeneralView"
-      ) as EulerGeneralViewContract,
+      eulerLensV1: createContract(
+        "EulerLensV1"
+      ) as EulerLensV1Contract,
       eul: new Contract(
         this.eulTokenConfig.address,
         this.abis.eul,

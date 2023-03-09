@@ -11,5 +11,5 @@ export type {
   SwapHub as SwapHubContract,
   EulStakes as EulStakesContract,
   EulDistributor as EulDistributorContract,
-  EulerGeneralView as EulerGeneralViewContract,
+  EulerLensV1 as EulerLensV1Contract,
 } from "@eulerxyz/euler-interfaces/types";

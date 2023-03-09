@@ -10,7 +10,7 @@ import swapJson from "@eulerxyz/euler-interfaces/abis/modules/Swap.json";
 import swapHubJson from "@eulerxyz/euler-interfaces/abis/modules/SwapHub.json";
 import eulStakesJson from "@eulerxyz/euler-interfaces/abis/mining/EulStakes.json";
 import eulDistributorJson from "@eulerxyz/euler-interfaces/abis/mining/EulDistributor.json";
-import eulerGeneralViewJson from "@eulerxyz/euler-interfaces/abis/views/EulerGeneralView.json";
+import eulerLensV1Json from "@eulerxyz/euler-interfaces/abis/views/EulerLensV1.json";
 
 export const eul = eulJson.abi;
 export const euler = eulerJson.abi;
@@ -24,4 +24,4 @@ export const swap = swapJson.abi;
 export const swapHub = swapHubJson.abi;
 export const eulStakes = eulStakesJson.abi;
 export const eulDistributor = eulDistributorJson.abi;
-export const eulerGeneralView = eulerGeneralViewJson.abi;
+export const eulerLensV1 = eulerLensV1Json.abi;

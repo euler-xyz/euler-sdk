@@ -66,7 +66,7 @@ export type EulerAddresses = {
   swapHandlerUniswapV3: string;
   eulStakes: string;
   eulDistributor: string;
-  eulerGeneralView: string;
+  eulerLensV1: string;
   eul: string;
   [contractName: string]: string;
 };
@@ -80,7 +80,7 @@ export type EulerABIs = {
   swapHub: ContractInterface;
   eulStakes: ContractInterface;
   eulDistributor: ContractInterface;
-  eulerGeneralView: ContractInterface;
+  eulerLensV1: ContractInterface;
   eul: ContractInterface;
   eToken: ContractInterface;
   dToken: ContractInterface;
@@ -105,7 +105,7 @@ export interface Contracts {
   swapHub: contracts.SwapHubContract;
   eulStakes: contracts.EulStakesContract;
   eulDistributor: contracts.EulDistributorContract;
-  eulerGeneralView: contracts.EulerGeneralViewContract;
+  eulerLensV1: contracts.EulerLensV1Contract;
   eul: contracts.EulContract;
   [contractName: string]: Contract;
 };

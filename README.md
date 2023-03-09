@@ -32,7 +32,7 @@ const e = new Euler(signer);
 By default, the SDK provides instances of the [ethers.Contract](https://docs.ethers.io/v5/api/contract/contract/) of:
 - main Euler modules: `Euler`, `Exec`, `Liquidation`, `Markets`, `Swap` and `SwapHub`
 - mining contracts `EulStakes` and `EulDistributor`
-- lens contract `EulerGeneralView`
+- lens contract `EulerLensV1`
 - native governance token `EUL`
 
 Available on `e.contracs` property.
@@ -142,7 +142,7 @@ const tx = await e.contracts.exec.batchDispatch(e.buildBatch(batchItems), [])
 #### Batch simulations
 In Euler it is possible to simulate batch calls in a flexible and powerful way. Internally, the Exec contract exposes a function `batchDispatchSimulate`, which is meant to be static called. It executes all the operations in a batch, but returns the responses before executing liquidity checks on the accounts involved in the tx. In addition it is possible to add a call to an arbitrary address with and arbitrary payload to a batch, as long as the function invoked doesn't change state (it must be a view function).
 
-By combining batch simulation and calls to external contracts, we are able to build powerful UX for the users. For example we can add a call to the lens contract `EulerGeneralView` to a simulated batch to receive all state changes to the accounts involved, which the execution of the transaction would result in. In fact we can check any state changes to the chain, as long as there is a view function available (wallet balances, dex slippage etc.). 
+By combining batch simulation and calls to external contracts, we are able to build powerful UX for the users. For example we can add a call to the lens contract `EulerLensV1` to a simulated batch to receive all state changes to the accounts involved, which the execution of the transaction would result in. In fact we can check any state changes to the chain, as long as there is a view function available (wallet balances, dex slippage etc.). 
 
 Because the responses from the batch are returned before the liquidity checks are executed (as long as liquidity check deferral is requested), it is also possible to simulate the state of the account the current batch would result in, even when that would mean collateral violation (health score < 1) or borrow isolation violation. Having full information, the user is then able to modify the batch accordingly.
 
@@ -184,7 +184,6 @@ Note that for gas estimation in batch simulation, all items with `staticCall` fl
 
 ```js
 const e = new Euler(signer)
-e.addContract("EulerGeneralView")
 
 const items = [
   {
@@ -195,7 +194,7 @@ const items = [
   },
   {
     staticCall: true,
-    contract: "eulerGeneralView",
+    contract: "eulerLensV1",
     method: "doQuery"
     args: [{
       eulerContract: e.contracts.euler.address,
